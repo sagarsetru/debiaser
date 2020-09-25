@@ -156,7 +156,7 @@ def return_suggested_articles(request):
         current_results = []
         
         # loop through search results
-        for j in search(query, tld='com', lang='en', num = 1, start=0, stop = 5, pause = 10):
+        for j in search(query, tld='com', lang='en', num = 1, start=0, stop = 5, pause = 2.0):
             
             # append search result to current list of results
             current_results.append(j)
