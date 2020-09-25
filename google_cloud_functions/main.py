@@ -1,14 +1,12 @@
 import json
+
 from google.cloud import storage
+
 import pandas as pd
 import numpy as np
 import os
 
 # NLP Packages
-import spacy
-nlp  = spacy.load('en_core_web_sm')
-
-# import string
 
 from gensim.corpora import Dictionary
 from gensim.models import LdaModel
@@ -16,14 +14,21 @@ from gensim.utils import simple_preprocess
 
 # to break articles up into sentences
 from nltk import tokenize
+from nltk.corpus import stopwords
 
 # for counting frequency of words
 from collections import defaultdict
 
-import spacy
-nlp  = spacy.load('en_core_web_sm')
+# import spacy
+# nlp  = spacy.load('en_core_web_sm')
+nlp = []
 
 from googlesearch import search
+
+# import requests
+
+# import urllib3
+# import urllib
 
 
 
@@ -41,6 +46,8 @@ def return_suggested_articles(request):
 
     """    
     
+    use_bucket = 1
+    
     # get the requested json for the webpage
     request_json = request.get_json(silent=True)
     
@@ -52,31 +59,45 @@ def return_suggested_articles(request):
     combined_article = headline+article
     
     # download stopwords list
-    download_from_bucket('debiaser_data', 'sw1k.csv', '/tmp/stop_words_1k.csv')
+    if use_bucket:
+        download_from_bucket('debiaser_data', 'sw1k.csv', '/tmp/stop_words_1k.csv')
     
-    # load stop words into pandas and then into list
-    stop_words = pd.read_csv('/tmp/stop_words_1k.csv')
+        # load stop words into pandas and then into list
+        stop_words = pd.read_csv('/tmp/stop_words_1k.csv')
+    
+    else:
+        # stop_words = pd.read_csv('/Users/sagarsetru/Documents/post PhD positions search/insightDataScience/project/debiaser/stop_words_db/news-stopwords-master/sw1k.csv')
+        
+        # use nltk stopwords
+        stop_words = list(stopwords.words('english'))
+        
     stop_words = stop_words['term']
     stop_words = [word for word in stop_words]
     
-    # adding some custom words
-    stop_words.append('said')
-    stop_words.append('youre')
+    # # adding some custom words
+    # stop_words.append('said')
+    # stop_words.append('youre')
     # stop_words.append('mph')
     
     
     # download all_sides_media list
-    download_from_bucket('debiaser_data','allsides_final_plus_others_with_domains.csv.csv', '/tmp/all_sides.csv')
+    if use_bucket:
+        download_from_bucket('debiaser_data','allsides_final_plus_others_with_domains.csv.csv', '/tmp/all_sides.csv')
     
-    # load domain names into dataframe and then get only names and
-    all_sides = pd.read_csv('/tmp/all_sides.csv')
+        # load domain names into dataframe and then get only names and
+        all_sides = pd.read_csv('/tmp/all_sides.csv')
+    
+    else:
+        all_sides = pd.read_csv('/Users/sagarsetru/Documents/post PhD positions search/insightDataScience/project/debiaser/all_sides_media_data/allsides_final_plus_others_with_domains.csv')
+    
     all_sides_names = all_sides['name']
     all_sides_domains = all_sides['domain']
     # all_sides_names_domains = pd.concat([all_sides_names,all_sides_domains],axis=1)
     
     # clean up workspace for memory
-    os.remove('/tmp/all_sides.csv')
-    os.remove('/tmp/stop_words_1k.csv')
+    if use_bucket:
+        os.remove('/tmp/all_sides.csv')
+        os.remove('/tmp/stop_words_1k.csv')
     
     # get dictionary of entities in article
     # entity_dict = entity_recognizer(combined_article,nlp)
@@ -141,6 +162,10 @@ def return_suggested_articles(request):
     
     # get list of google queries
     queries = []
+    
+    # quick manual entry
+    # all_sides_domains = ['nytimes.com','apnews.com','reuters.com','wsj.com']
+    # all_sides_names = ['nyt','ap','reuters','wsj']
     
     for domain in all_sides_domains:
         query = 'site:'+domain+lda_top_topic_words
