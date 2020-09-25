@@ -39,7 +39,7 @@ from bs4 import BeautifulSoup
 # import urllib3
 # import urllib
 
-import streamlit as st
+# import streamlit as st
 
 def return_suggested_articles2(url):
     """
@@ -102,20 +102,21 @@ def return_suggested_articles2(url):
     # combined_article = headline+article
     
     # download stopwords list
-    if use_bucket:
-        download_from_bucket('debiaser_data', 'sw1k.csv', '/tmp/stop_words_1k.csv')
+    # if use_bucket:
+    #     download_from_bucket('debiaser_data', 'sw1k.csv', '/tmp/stop_words_1k.csv')
     
-        # load stop words into pandas and then into list
-        stop_words = pd.read_csv('/tmp/stop_words_1k.csv')
+    #     # load stop words into pandas and then into list
+    #     stop_words = pd.read_csv('/tmp/stop_words_1k.csv')
     
-    else:
-        # stop_words = pd.read_csv('/Users/sagarsetru/Documents/post PhD positions search/insightDataScience/project/debiaser/stop_words_db/news-stopwords-master/sw1k.csv')
+    # else:
+        
+    stop_words = pd.read_csv('/Users/sagarsetru/Documents/post PhD positions search/insightDataScience/project/debiaser/stop_words_db/news-stopwords-master/sw1k.csv')
         
         # use nltk stopwords
-        stop_words = list(stopwords.words('english'))
+        # stop_words = list(stopwords.words('english'))
         
-    # stop_words = stop_words['term']
-    # stop_words = [word for word in stop_words]
+    stop_words = stop_words['term']
+    stop_words = [word for word in stop_words]
     
     # # adding some custom words
     # stop_words.append('said')
@@ -124,23 +125,23 @@ def return_suggested_articles2(url):
     
     
     # download all_sides_media list
-    if use_bucket:
-        download_from_bucket('debiaser_data','allsides_final_plus_others_with_domains.csv.csv', '/tmp/all_sides.csv')
+    # if use_bucket:
+    #     download_from_bucket('debiaser_data','allsides_final_plus_others_with_domains.csv.csv', '/tmp/all_sides.csv')
     
-        # load domain names into dataframe and then get only names and
-        all_sides = pd.read_csv('/tmp/all_sides.csv')
+    #     # load domain names into dataframe and then get only names and
+    #     all_sides = pd.read_csv('/tmp/all_sides.csv')
     
     # else:
-    #     all_sides = pd.read_csv('/Users/sagarsetru/Documents/post PhD positions search/insightDataScience/project/debiaser/all_sides_media_data/allsides_final_plus_others_with_domains.csv')
+    all_sides = pd.read_csv('/Users/sagarsetru/Documents/post PhD positions search/insightDataScience/project/debiaser/all_sides_media_data/allsides_final_plus_others_with_domains.csv')
     
     # all_sides_names = all_sides['name']
     # all_sides_domains = all_sides['domain']
     # all_sides_names_domains = pd.concat([all_sides_names,all_sides_domains],axis=1)
     
     # clean up workspace for memory
-    if use_bucket:
-        os.remove('/tmp/all_sides.csv')
-        os.remove('/tmp/stop_words_1k.csv')
+    # if use_bucket:
+    #     os.remove('/tmp/all_sides.csv')
+    #     os.remove('/tmp/stop_words_1k.csv')
     
     # get dictionary of entities in article
     # entity_dict = entity_recognizer(combined_article,nlp)
@@ -193,15 +194,56 @@ def return_suggested_articles2(url):
         # Just take top word in each generated topic
         
     # get top words per topic
+    
+    # string is for final search string
     lda_top_topic_words = ''
     
-    # loop through each list of generated topics
+    # list is for checking previous words
+    lda_top_topic_words_list = []
+    
     for topic in lda_topics:
         
         # get the list of topics
         topic_words = topic[1]
         
         lda_top_topic_words += ' '+topic_words[0][0]
+    
+    # # loop through each list of generated topics
+    # for topic in lda_topics:
+        
+    #     # set word added to 0
+    #     word_added = 0
+        
+    #     # get the list of topics
+    #     topic_words = topic[1]
+            
+    #     # loop through words in topic
+    #     # add as search term only if they aren't already search terms
+    #     for i in range(len(topic_words)):
+        
+    #         # if the current word in topic is not in list of search terms
+    #         if topic_words[i][0] not in lda_top_topic_words_list:
+                
+    #             # add this word to list of topic/search terms
+    #             lda_top_topic_words_list.append(topic_words[i][0])
+                
+    #             # also update the string for the search terms
+    #             lda_top_topic_words += ' '+topic_words[i][0]
+                
+    #             # update word added
+    #             word_added = 1
+    #             break
+        
+    #     # if no word was added because all supporting words in topic are already
+    #     # search terms, then just add the highest prob/first word in topic
+    #     if word_added == 0:
+    #         # if every word in this topic is already a search term,
+    #         # just add the first most probable word and leave the while loop
+    #         lda_top_topic_words_list.append(topic_words[0][0])
+    #         lda_top_topic_words += ' '+topic_words[0][0]
+        
+
+            
     
     # get list of google queries
     queries = []
@@ -239,6 +281,11 @@ def return_suggested_articles2(url):
     # # convert dictionary to json dictionary
     # json_object = json.dumps(query_results, indent = 4)
     
+    print(lda_topics)
+    print(headline)
+    print(combined_article)
+    print(lda_top_topic_words)
+    print(topic_words)
     return queries
 
 def return_suggested_articles(url):
@@ -309,10 +356,10 @@ def return_suggested_articles(url):
         stop_words = pd.read_csv('/tmp/stop_words_1k.csv')
     
     else:
-        # stop_words = pd.read_csv('/Users/sagarsetru/Documents/post PhD positions search/insightDataScience/project/debiaser/stop_words_db/news-stopwords-master/sw1k.csv')
+        stop_words = pd.read_csv('/Users/sagarsetru/Documents/post PhD positions search/insightDataScience/project/debiaser/stop_words_db/news-stopwords-master/sw1k.csv')
         
         # use nltk stopwords
-        stop_words = list(stopwords.words('english'))
+        # stop_words = list(stopwords.words('english'))
         
     # stop_words = stop_words['term']
     # stop_words = [word for word in stop_words]
@@ -403,6 +450,7 @@ def return_suggested_articles(url):
         
         lda_top_topic_words += ' '+topic_words[0][0]
     
+    print(lda_top_topic_words)
     # get list of google queries
     queries = []
     
@@ -751,20 +799,20 @@ def sort_topics_mean_frequency(topics,topics_mean_probs_dict,topics_std_probs_di
     
     return x_topics_means, y_means_sorted, y_std_sorted, x_topics_freq, y_freq_sorted
 
-url = st.text_input("URL: ", 'https://www.theguardian.com/us-news/2020/sep/25/ruth-bader-ginsburg-us-capitol-lie-in-state')
+# url = st.text_input("URL: ", 'https://www.theguardian.com/us-news/2020/sep/25/ruth-bader-ginsburg-us-capitol-lie-in-state')
 
-st.title('debiaser')
+# st.title('debiaser')
 
-# url = 'https://www.theguardian.com/sport/2020/sep/25/la-lakers-denver-nuggets-game-4-recap'
-
+url = 'https://www.theguardian.com/sport/2020/sep/25/la-lakers-denver-nuggets-game-4-recap'
+url = 'https://www.nytimes.com/2020/09/25/us/politics/rbg-retirement-obama.html'
 
 queries = return_suggested_articles2(url)
 
-st.write(queries)
+# st.write(queries)
 
-json_url = return_suggested_articles(url)
+# json_url = return_suggested_articles(url)
 
-st.write(json_url)
+# st.write(json_url)
 # def read_article(file_json):
 #     """
 #     receives text via read_article() function
