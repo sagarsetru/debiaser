@@ -8,6 +8,8 @@ import os
 import spacy
 nlp  = spacy.load('en_core_web_sm')
 
+# import string
+
 from gensim.corpora import Dictionary
 from gensim.models import LdaModel
 from gensim.utils import simple_preprocess
@@ -74,6 +76,9 @@ def return_suggested_articles(request):
     os.remove('/tmp/all_sides.csv')
     os.remove('/tmp/stop_words_1k.csv')
     
+    # get dictionary of entities in article
+    entity_dict = entity_recognizer(raw_text,nlp)
+    
     # replace weird apostrophes
     combined_article = combined_article.replace("`","'")
     combined_article = combined_article.replace("’","'")
@@ -129,59 +134,13 @@ def return_suggested_articles(request):
                                              topics_std_probs_dict,
                                              topics_frequency_dict)
     
-    return json.dumps(combined_article)
-
-def process_text(article_text):
-    """
-    processes individual document text by removing stop words,
-    making all lower case,
-    and removing punctuation.
     
-
-    Parameters
-    ----------
-    article_text : document text that you want to preprocess.
-
-    -------
-    processed text for document.
-
-    """
     
-    # run gensim preprocess
-    article_text = simple_preprocess(article_text, deacc=True)
     
-    return article_text
-
-
-def process_all_articles(documents):
-    """
-    runs process_texts function on each document in documents.
-
-    Parameters
-    ----------
-    documents : list[strs]
-        a list of documents, where each document is a string
-
-    Returns
-    -------
-    documents_processed : list of processed documents.
-
-    """
     
-    # list for processed documents
-    documents_processed = []
-    
-    # loop through documents
-    for document in documents:
-        
-        # process documents
-        document_processed = process_text(document)
-        
-        # append to list of processed documents
-        documents_processed.append(document_processed)
-        
-    return documents_processed
-    
+    # return json.dumps(combined_article)
+
+
 def download_from_bucket(bucket_name,source_data_name,destination_file_name):
     """
     
@@ -204,7 +163,96 @@ def download_from_bucket(bucket_name,source_data_name,destination_file_name):
     
     print(f'Blob data {source_data_name} downloaded to {destination_file_name}')
     
+def entity_recognizer(raw_text,nlp):
+    """Function that recognizes specific entitites, returns dictionary of them"""
+
+    doc = nlp(raw_text)
     
+    entity_dict = {}
+    
+    word_types = ['DATE', 'PERSON', 'ORG','MONEY','GPE']
+    
+    for word_type in word_types:
+        entity_dict[word_type] = [entity.text for entity in doc.ents if entity.label_ in {word_type}]
+#         entity_dict['PERSON'] = [entity.text for entity in doc.ents if entity.label_ in {'PERSON'}]
+    
+    #Remove organizations and people from documnet text
+#     tokens_ner = [entity.text for entity in doc.ents if entity.label_ in {'DATE', 'PERSON', 'ORG','MONEY','GPE'}]
+    
+    return entity_dict
+
+def process_text(article_text,nlp):
+    """
+    processes individual document text by removing stop words,
+    making all lower case,
+    and removing punctuation.
+    
+
+    Parameters
+    ----------
+    article_text : document text that you want to preprocess.
+    nlp : nlp lib (eg. nlp  = spacy.load('en_core_web_sm'))
+
+    -------
+    processed text for document.
+
+    """
+    
+    # lemmatize NOTE: NOT IMPLEMENTED YET...
+    # article_text = lemmatize(article_text,nlp)
+    
+    # run gensim preprocess
+    article_text = simple_preprocess(article_text, deacc=True)
+    
+    return article_text
+
+
+def process_all_articles(documents,nlp):
+    """
+    runs process_texts function on each document in documents.
+
+    Parameters
+    ----------
+    documents : list[strs]
+        a list of documents, where each document is a string
+
+    Returns
+    -------
+    documents_processed : list of processed documents.
+
+    """
+    
+    # list for processed documents
+    documents_processed = []
+    
+    # loop through documents
+    for document in documents:
+        
+        # process documents
+        document_processed = process_text(document,nlp)
+        
+        # append to list of processed documents
+        documents_processed.append(document_processed)
+        
+    return documents_processed
+    
+def lemmatize(raw_texts,nlp):
+
+    """Function that lemmatizes text"""
+
+    out_text = []
+    
+    for text in raw_texts:
+        doc = nlp(text)
+
+
+        #Remove stopwords and lemmatize
+        tokens = [token.lemma_ for token in doc]
+        
+        out_text.append(tokens)
+    
+    return out_text
+
 def remove_stopwords(documents, stop_words):
     """
     removes stopwords from corpus
