@@ -27,7 +27,24 @@ import spacy
 import warnings
 warnings.filterwarnings("ignore",category=DeprecationWarning)
 
-def process_text(article_text):
+def lemmatize(raw_texts,nlp):
+
+    """Function that lemmatizes text"""
+
+    out_text = []
+    
+    for text in raw_texts:
+        doc = nlp(text)
+
+
+        #Remove stopwords and lemmatize
+        tokens = [token.lemma_ for token in doc]
+        
+        out_text.append(tokens)
+    
+    return out_text
+
+def process_text(article_text,nlp):
     """
     processes document text by removing stop words, making all lower case,
     and removing punctuation.
@@ -41,6 +58,9 @@ def process_text(article_text):
     processed text for document.
 
     """
+    
+    # lemmatize
+    # article_text = lemmatize(article_text,nlp)
     
     # run gensim preprocess
     article_text = gensim.utils.simple_preprocess(article_text, deacc=True)
@@ -69,7 +89,7 @@ def process_text(article_text):
     return article_text
 
 
-def process_all_articles(documents):
+def process_all_articles(documents,nlp):
     """
     runs process_texts function on each document in documents.
 
@@ -91,7 +111,7 @@ def process_all_articles(documents):
     for document in documents:
         
         # process documents
-        document_processed = process_text(document)
+        document_processed = process_text(document,nlp)
         
         # append to list of processed documents
         documents_processed.append(document_processed)
