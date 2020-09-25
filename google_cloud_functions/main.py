@@ -23,6 +23,8 @@ from collections import defaultdict
 import spacy
 nlp  = spacy.load('en_core_web_sm')
 
+from googlesearch import search
+
 
 
 def return_suggested_articles(request):
@@ -70,14 +72,14 @@ def return_suggested_articles(request):
     all_sides = pd.read_csv('/tmp/all_sides.csv')
     all_sides_names = all_sides['name']
     all_sides_domains = all_sides['domain']
-    all_sides_names_domains = pd.concat([all_sides_names,all_sides_domains],axis=1)
+    # all_sides_names_domains = pd.concat([all_sides_names,all_sides_domains],axis=1)
     
     # clean up workspace for memory
     os.remove('/tmp/all_sides.csv')
     os.remove('/tmp/stop_words_1k.csv')
     
     # get dictionary of entities in article
-    entity_dict = entity_recognizer(raw_text,nlp)
+    # entity_dict = entity_recognizer(combined_article,nlp)
     
     # replace weird apostrophes
     combined_article = combined_article.replace("`","'")
@@ -110,7 +112,7 @@ def return_suggested_articles(request):
     num_lda_topics = 5
     
     # set the number of passes
-    n_passes = 20
+    n_passes = 100
     
     # generate the LDA model
     lda = LdaModel(corpus = bow_corpus,
@@ -121,22 +123,74 @@ def return_suggested_articles(request):
     # get the topics from the lda model
     lda_topics = lda.show_topics(formatted = False)
     
-    # get the unique topic words
-    # get dictionary of each topic word and their associated probabilities per topic
-    # get dictionary of each topic word and their mean probability
-    # get dictionary of each topic word and their std dev probability
-    # get dictionary of each topic word and the frequency with which the words show up
-    topics, topics_probs_dict, topics_mean_probs_dict, topics_std_probs_dict, topics_frequency_dict = get_topic_words_mean_std_prob_frequency(lda_topics)
     
-    # get the topic mean probs and frequencies, sorted
-    topics_means, means_sorted, std_sorted, topics_freq, freq_sorted = sort_topics_mean_frequency(topics,
-                                             topics_mean_probs_dict,
-                                             topics_std_probs_dict,
-                                             topics_frequency_dict)
+    # ALL INTERESTING BUT DEPRECATED FOR NOW
+    # WILL FOLLOW SIMPLER APPROACH:
+        # Just take top word in each generated topic
+        
+    # get top words per topic
+    lda_top_topic_words = []
+    
+    # loop through each list of generated topics
+    for topic in lda_topics:
+        
+        # get the list of topics
+        topic_words = topic[1]
+        
+        lda_top_topic_words.append(topic_words[0][0])
+    
+    # get list of google queries
+    queries = []
+    
+    for domain in all_sides_domains:
+        query = 'site:'+domain+lda_top_topic_words
+        queries.append(query)        
+    
+    # create dictionary for results of query
+    query_results = {}
+
+    # loop through queries
+    for ind, query in enumerate(queries):
+        
+        # initialize list for results of query
+        current_results = []
+        
+        # loop through search results
+        for j in search(query, tld='com', lang='en', num = 1, start=0, stop = 5, pause = 10):
+            
+            # append search result to current list of results
+            current_results.append(j)
+            
+        # append list of results from query to dictionary for that query
+        query_results[all_sides_names.iloc[ind]] = current_results
+    
+    # also create entry in dictionary for the search terms
+    query_results['search_terms'] = lda_top_topic_words
+    
+    
+    # convert dictionary to json dictionary
+    json_object = json.dumps(query_results, indent = 4)
+    
+    return json_object
+    
+    # # get the unique topic words
+    # # get dictionary of each topic word and their associated probabilities per topic
+    # # get dictionary of each topic word and their mean probability
+    # # get dictionary of each topic word and their std dev probability
+    # # get dictionary of each topic word and the frequency with which the words show up
+    # topics, topics_probs_dict, topics_mean_probs_dict, topics_std_probs_dict, topics_frequency_dict = get_topic_words_mean_std_prob_frequency(lda_topics)
+    
+    # # get the topic mean probs and frequencies, sorted
+    # topics_means, means_sorted, std_sorted, topics_freq, freq_sorted = sort_topics_mean_frequency(topics,
+    #                                          topics_mean_probs_dict,
+    #                                          topics_std_probs_dict,
+    #                                          topics_frequency_dict)
     
     
     
-    
+    # # get the words to use in google search
+    # # (for now, just pick the top 3 probs and top 2 most common)
+    # words_to_search = [topics_means[0:2],topics_freq[]
     
     # return json.dumps(combined_article)
 
@@ -157,9 +211,17 @@ def download_from_bucket(bucket_name,source_data_name,destination_file_name):
 
     """
     
+    # load instance of the storage client
     storage_client = storage.Client()
+    
+    # get the bucket from the bucket name
     bucket = storage_client.get_bucket(bucket_name)
+    
+    # get the data set/bloc
     data_set = bucket.blob(source_data_name)
+    
+    # save the dataset at the destination file name
+    data_set.download_to_filename(destination_file_name)
     
     print(f'Blob data {source_data_name} downloaded to {destination_file_name}')
     
@@ -174,11 +236,7 @@ def entity_recognizer(raw_text,nlp):
     
     for word_type in word_types:
         entity_dict[word_type] = [entity.text for entity in doc.ents if entity.label_ in {word_type}]
-#         entity_dict['PERSON'] = [entity.text for entity in doc.ents if entity.label_ in {'PERSON'}]
-    
-    #Remove organizations and people from documnet text
-#     tokens_ner = [entity.text for entity in doc.ents if entity.label_ in {'DATE', 'PERSON', 'ORG','MONEY','GPE'}]
-    
+
     return entity_dict
 
 def process_text(article_text,nlp):
