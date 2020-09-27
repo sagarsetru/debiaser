@@ -57,6 +57,12 @@ def return_suggested_articles2(url):
     
     use_bucket = 0
     
+    unique_topic_words = 0
+    
+    # only for use when using one topic; this is number of words from that topic
+    # that will be used in search
+    n_topic_words = 3
+    
     # get html content of url
     page = requests.get(url)
     coverpage = page.content
@@ -134,8 +140,8 @@ def return_suggested_articles2(url):
     # else:
     all_sides = pd.read_csv('/Users/sagarsetru/Documents/post PhD positions search/insightDataScience/project/debiaser/all_sides_media_data/allsides_final_plus_others_with_domains.csv')
     
-    # all_sides_names = all_sides['name']
-    # all_sides_domains = all_sides['domain']
+    all_sides_names = all_sides['name']
+    all_sides_domains = all_sides['domain']
     # all_sides_names_domains = pd.concat([all_sides_names,all_sides_domains],axis=1)
     
     # clean up workspace for memory
@@ -147,15 +153,15 @@ def return_suggested_articles2(url):
     # entity_dict = entity_recognizer(combined_article,nlp)
     
     # replace weird apostrophes
-    combined_article = combined_article.replace("`","'")
-    combined_article = combined_article.replace("’","'")
-    combined_article = combined_article.replace("'","'")
+    # combined_article = combined_article.replace("`","'")
+    # combined_article = combined_article.replace("’","'")
+    # combined_article = combined_article.replace("'","'")
     
-    # replace long dashes with short dashes
-    combined_article = combined_article.replace("—","-")
+    # # replace long dashes with short dashes
+    # combined_article = combined_article.replace("—","-")
     
-    # replace short dashes with spaces
-    combined_article = combined_article.replace("-"," ")
+    # # replace short dashes with spaces
+    # combined_article = combined_article.replace("-"," ")
     
     # break up into sentences
     combined_article = tokenize.sent_tokenize(combined_article)
@@ -172,9 +178,9 @@ def return_suggested_articles2(url):
     # get corpus, dictionary, bag of words
     processed_corpus, processed_dictionary, bow_corpus = get_simple_corpus_dictionary_bow(article_processed,
                                                                                           word_frequency_threshold)
-    
+
     # set the number of topics to generate (5 seems to work pretty well)
-    num_lda_topics = 5
+    num_lda_topics = 1
     
     # set the number of passes
     n_passes = 100
@@ -201,60 +207,87 @@ def return_suggested_articles2(url):
     # list is for checking previous words
     lda_top_topic_words_list = []
     
-    for topic in lda_topics:
-        
-        # get the list of topics
-        topic_words = topic[1]
-        
-        lda_top_topic_words += ' '+topic_words[0][0]
     
-    # # loop through each list of generated topics
-    # for topic in lda_topics:
+    if num_lda_topics > 1:
+    
+        if not unique_topic_words:
         
-    #     # set word added to 0
-    #     word_added = 0
-        
-    #     # get the list of topics
-    #     topic_words = topic[1]
+            for topic in lda_topics:
+                
+                # get the list of topics
+                topic_words = topic[1]
+                
+                lda_top_topic_words += ' '+topic_words[0][0]
             
-    #     # loop through words in topic
-    #     # add as search term only if they aren't already search terms
-    #     for i in range(len(topic_words)):
-        
-    #         # if the current word in topic is not in list of search terms
-    #         if topic_words[i][0] not in lda_top_topic_words_list:
-                
-    #             # add this word to list of topic/search terms
-    #             lda_top_topic_words_list.append(topic_words[i][0])
-                
-    #             # also update the string for the search terms
-    #             lda_top_topic_words += ' '+topic_words[i][0]
-                
-    #             # update word added
-    #             word_added = 1
-    #             break
-        
-    #     # if no word was added because all supporting words in topic are already
-    #     # search terms, then just add the highest prob/first word in topic
-    #     if word_added == 0:
-    #         # if every word in this topic is already a search term,
-    #         # just add the first most probable word and leave the while loop
-    #         lda_top_topic_words_list.append(topic_words[0][0])
-    #         lda_top_topic_words += ' '+topic_words[0][0]
-        
-
+        else:
             
+            # loop through each list of generated topics
+            for topic in lda_topics:
+                
+                # set word added to 0
+                word_added = 0
+                
+                # get the list of topics
+                topic_words = topic[1]
+                    
+                # loop through words in topic
+                # add as search term only if they aren't already search terms
+                for i in range(len(topic_words)):
+                
+                    # if the current word in topic is not in list of search terms
+                    if topic_words[i][0] not in lda_top_topic_words_list:
+                        
+                        # add this word to list of topic/search terms
+                        lda_top_topic_words_list.append(topic_words[i][0])
+                        
+                        # also update the string for the search terms
+                        lda_top_topic_words += ' '+topic_words[i][0]
+                        
+                        # update word added
+                        word_added = 1
+                        break
+                
+                # if no word was added because all supporting words in topic are already
+                # search terms, then just add the highest prob/first word in topic
+                if word_added == 0:
+                    # if every word in this topic is already a search term,
+                    # just add the first most probable word and leave the while loop
+                    lda_top_topic_words_list.append(topic_words[0][0])
+                    lda_top_topic_words += ' '+topic_words[0][0]
+                    
+    else:
+        
+        for topic in lda_topics:
+                
+                # get the list of topic words
+                topic_words = topic[1]
+                
+                # loop through these words and get the top n number
+                counter = -1
+                for topic_word in topic_words:
+                    
+                    counter += 1
+                    
+                    if counter < n_topic_words:
+                    
+                        lda_top_topic_words += ' '+topic_word[0]
+    
+        
     
     # get list of google queries
     queries = []
     
+    queries_dict = {}
+    
     # quick manual entry
-    all_sides_domains = ['nytimes.com','wsj.com']
-    all_sides_names = ['nyt','wsj']
+    # all_sides_domains = ['nytimes.com','wsj.com']
+    # all_sides_names = ['nyt','wsj']
     
     for domain in all_sides_domains:
-        query = 'site:'+domain+lda_top_topic_words
-        queries.append(query)        
+        query = 'www.google.com/search?q=site:'+domain+lda_top_topic_words
+        queries.append(query)
+        
+        queries_dict[domain] = query
     
     # # create dictionary for results of query
     # query_results = {}
@@ -281,12 +314,12 @@ def return_suggested_articles2(url):
     # # convert dictionary to json dictionary
     # json_object = json.dumps(query_results, indent = 4)
     
-    print(lda_topics)
     print(headline)
     print(combined_article)
-    print(lda_top_topic_words)
+    # print(lda_top_topic_words)
+    print(lda_topics)
     print(topic_words)
-    return queries
+    return queries_dict
 
 def return_suggested_articles(url):
     """
@@ -805,8 +838,14 @@ def sort_topics_mean_frequency(topics,topics_mean_probs_dict,topics_std_probs_di
 
 url = 'https://www.theguardian.com/sport/2020/sep/25/la-lakers-denver-nuggets-game-4-recap'
 url = 'https://www.nytimes.com/2020/09/25/us/politics/rbg-retirement-obama.html'
+url = 'https://www.nytimes.com/2020/09/27/us/politics/trump-biden-debate-expectations.html?action=click&module=Top%20Stories&pgtype=Homepage'
 
 queries = return_suggested_articles2(url)
+
+for domain in queries.keys():
+    domain_name = domain.split('.')[0]
+    
+    print(f"let {domain_name} = articles_json['{domain}']")
 
 # st.write(queries)
 
