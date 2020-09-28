@@ -106,6 +106,7 @@ def return_suggested_articles(request):
     stop_words.append('said')
     stop_words.append('youre')
     stop_words.append('mph')
+    stop_words.append('inc')
     
     print('Downloading news organizations from AllSidesMedia')
     # download all_sides_media list
