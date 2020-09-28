@@ -15,16 +15,16 @@ from gensim.utils import simple_preprocess
 
 # to break articles up into sentences
 from nltk import tokenize
-from nltk.corpus import stopwords
+# from nltk.corpus import stopwords
 
 # for counting frequency of words
-from collections import defaultdict
+# from collections import defaultdict
 
 # import spacy
 # nlp  = spacy.load('en_core_web_sm')
 nlp = []
 
-from googlesearch import search
+# from googlesearch import search
 
 # import requests
 
@@ -123,18 +123,20 @@ def return_suggested_articles(request):
     combined_article = tokenize.sent_tokenize(combined_article)
     
     # process article
-    article_processed = process_all_articles(combined_article)
+    article_processed = process_all_articles(combined_article,nlp)
     
     # remove stopwords
     article_processed = remove_stopwords(article_processed,stop_words)
     
     # floor for the frequency of words to remove
-    word_frequency_threshold = 1
+    # word_frequency_threshold = 1
     
     # get corpus, dictionary, bag of words
-    processed_corpus, processed_dictionary, bow_corpus = get_simple_corpus_dictionary_bow(article_processed,
-                                                                                          word_frequency_threshold)
+    # processed_corpus, processed_dictionary, bow_corpus = get_simple_corpus_dictionary_bow(article_processed,
+    #                                                                                       word_frequency_threshold)
     
+    processed_corpus, processed_dictionary, bow_corpus = get_simple_corpus_dictionary_bow(article_processed)
+
     # generate the LDA model
     lda = LdaModel(corpus = bow_corpus,
                     num_topics = num_lda_topics,
@@ -420,18 +422,20 @@ def remove_stopwords(documents, stop_words):
     return documents_processed
     
     
-def get_simple_corpus_dictionary_bow(texts,word_frequency_threshold):
+def get_simple_corpus_dictionary_bow(texts):
     """fxn returns corpus, processed dict, bag of words"""
     
     # Count word frequencies
-    frequency = defaultdict(int)
-    for text in texts:
-        for token in text:
-            frequency[token] += 1
+    # frequency = defaultdict(int)
+    # for text in texts:
+    #     for token in text:
+    #         frequency[token] += 1
 
     # Only keep words that appear more than set frequency, to produce the corpus
-    processed_corpus = [[token for token in text if frequency[token] > word_frequency_threshold] for text in texts]
+    # processed_corpus = [[token for token in text if frequency[token] > word_frequency_threshold] for text in texts]
     
+    processed_corpus = [[token for token in text] for text in texts]
+
     # generate a dictionary via gensim
     processed_dictionary = Dictionary(processed_corpus)
     
