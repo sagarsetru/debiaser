@@ -6,7 +6,7 @@ from flask import escape
 import pandas as pd
 import numpy as np
 import os
-
+import time
 
 # NLP Packages
 
@@ -69,9 +69,10 @@ def return_suggested_articles(request):
     # get the headline and article
     headline = request_json['headline']
     article = request_json['article']
+    print('requested json headline and article text')
     
     # make into one text file
-    combined_article = headline+article
+    combined_article = headline+'. '+article
     
     # if avoiding repeated words (only relevant if num_lda_topics > 1)
     unique_topic_words = 0
@@ -86,6 +87,7 @@ def return_suggested_articles(request):
     # set the number of passes
     n_passes = 1
     
+    print('Downloading stop words')
     # download stopwords list
     # if use_bucket:
     download_blob('debiaser_data', 'sw1k.csv', '/tmp/sw1k.csv')
@@ -105,10 +107,11 @@ def return_suggested_articles(request):
     stop_words.append('youre')
     stop_words.append('mph')
     
+    print('Downloading news organizations from AllSidesMedia')
     # download all_sides_media list
     # if use_bucket:
     download_blob('debiaser_data','allsides_final_plus_others_with_domains.csv', '/tmp/allsides_final_plus_others_with_domains.csv')
-
+    
     # load domain names into dataframe and then get only names and
     all_sides = pd.read_csv('/tmp/allsides_final_plus_others_with_domains.csv')
     
@@ -123,13 +126,15 @@ def return_suggested_articles(request):
     # get dictionary of entities in article
     # entity_dict = entity_recognizer(combined_article,nlp)
     
-    
+    print('splitting article into sentences')
     # break up into sentences
     combined_article = tokenize.sent_tokenize(combined_article)
-    '''
+    
+    print('pre processing article text')
     # process article
     article_processed = process_all_articles(combined_article,nlp)
     
+    print('removing stopwords')
     # remove stopwords
     article_processed = remove_stopwords(article_processed,stop_words)
     
@@ -140,8 +145,12 @@ def return_suggested_articles(request):
     # processed_corpus, processed_dictionary, bow_corpus = get_simple_corpus_dictionary_bow(article_processed,
     #                                                                                       word_frequency_threshold)
     
+    print('generating dictionary and bag of words vector...')
+    start = time.process_time()
     processed_corpus, processed_dictionary, bow_corpus = get_simple_corpus_dictionary_bow(article_processed)
-
+    print('TIME FOR GENERATING DICTIONARY AND BOW VECTOR')
+    print(time.process_time() - start)
+    '''
     # generate the LDA model
     lda = LdaModel(corpus = bow_corpus,
                     num_topics = num_lda_topics,
