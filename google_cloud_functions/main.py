@@ -111,7 +111,7 @@ def return_suggested_articles(request):
     all_sides = pd.read_csv('/tmp/allsides_final_plus_others_with_domains.csv')
     
     # remove from memory
-    os.remove('/tmp/all_sides.csv')
+    os.remove('/tmp/allsides_final_plus_others_with_domains.csv')
 
     # get the domain
     # all_sides_names = all_sides['name']
