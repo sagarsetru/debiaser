@@ -60,8 +60,6 @@ def return_suggested_articles(request):
     # make into one text file
     combined_article = headline+article
     
-    use_bucket = 1
-    
     # if avoiding repeated words (only relevant if num_lda_topics > 1)
     unique_topic_words = 0
     
@@ -75,7 +73,6 @@ def return_suggested_articles(request):
     # set the number of passes
     n_passes = 1
     
-    
     # download stopwords list
     # if use_bucket:
     download_blob('debiaser_data', 'sw1k.csv', '/tmp/sw1k.csv')
@@ -85,13 +82,7 @@ def return_suggested_articles(request):
     stop_words = pd.read_csv('/tmp/sw1k.csv')
     
     # remove from memory
-    os.remove('/tmp/all_sides.csv')
-    
-    # else:
-        # stop_words = pd.read_csv('/Users/sagarsetru/Documents/post PhD positions search/insightDataScience/project/debiaser/stop_words_db/news-stopwords-master/sw1k.csv')
-        
-        # use nltk stopwords
-        # stop_words = list(stopwords.words('english'))
+    os.remove('/tmp/sw1k.csv')
         
     stop_words = stop_words['term']
     stop_words = [word for word in stop_words]
@@ -101,29 +92,25 @@ def return_suggested_articles(request):
     stop_words.append('youre')
     stop_words.append('mph')
     
-    '''
     # download all_sides_media list
-    if use_bucket:
-        download_blob('debiaser_data','allsides_final_plus_others_with_domains.csv.csv', '/tmp/all_sides.csv')
+    # if use_bucket:
+    download_blob('debiaser_data','allsides_final_plus_others_with_domains.csv', '/tmp/all_sides.csv')
+
+    # load domain names into dataframe and then get only names and
+    all_sides = pd.read_csv('/tmp/all_sides.csv')
     
-        # load domain names into dataframe and then get only names and
-        all_sides = pd.read_csv('/tmp/all_sides.csv')
-    
-    else:
-        all_sides = pd.read_csv('/Users/sagarsetru/Documents/post PhD positions search/insightDataScience/project/debiaser/all_sides_media_data/allsides_final_plus_others_with_domains.csv')
-    
+    # remove from memory
+    os.remove('/tmp/all_sides.csv')
+
+    # get the domain
     # all_sides_names = all_sides['name']
     all_sides_domains = all_sides['domain']
     # all_sides_names_domains = pd.concat([all_sides_names,all_sides_domains],axis=1)
-    
-    # clean up workspace for memory
-    if use_bucket:
-        os.remove('/tmp/all_sides.csv')
-        os.remove('/tmp/stop_words_1k.csv')
-    
+
     # get dictionary of entities in article
     # entity_dict = entity_recognizer(combined_article,nlp)
     
+    '''
     # break up into sentences
     combined_article = tokenize.sent_tokenize(combined_article)
     
