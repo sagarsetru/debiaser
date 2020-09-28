@@ -52,6 +52,7 @@ def return_suggested_articles(request):
     # get the requested json for the webpage
     request_json = request.get_json(silent=True)
     
+    
     # get the headline and article
     headline = request_json['headline']
     article = request_json['article']
@@ -76,17 +77,21 @@ def return_suggested_articles(request):
     
     
     # download stopwords list
-    if use_bucket:
-        download_from_bucket('debiaser_data', 'sw1k.csv', '/tmp/stop_words_1k.csv')
+    # if use_bucket:
+    download_blob('debiaser_data', 'sw1k.csv', '/tmp/sw1k.csv')
     
-        # load stop words into pandas and then into list
-        stop_words = pd.read_csv('/tmp/stop_words_1k.csv')
     
-    else:
+    # load stop words into pandas and then into list
+    stop_words = pd.read_csv('/tmp/sw1k.csv')
+    
+    # remove from memory
+    os.remove('/tmp/all_sides.csv')
+    
+    # else:
         # stop_words = pd.read_csv('/Users/sagarsetru/Documents/post PhD positions search/insightDataScience/project/debiaser/stop_words_db/news-stopwords-master/sw1k.csv')
         
         # use nltk stopwords
-        stop_words = list(stopwords.words('english'))
+        # stop_words = list(stopwords.words('english'))
         
     stop_words = stop_words['term']
     stop_words = [word for word in stop_words]
@@ -96,10 +101,10 @@ def return_suggested_articles(request):
     stop_words.append('youre')
     stop_words.append('mph')
     
-    
+    '''
     # download all_sides_media list
     if use_bucket:
-        download_from_bucket('debiaser_data','allsides_final_plus_others_with_domains.csv.csv', '/tmp/all_sides.csv')
+        download_blob('debiaser_data','allsides_final_plus_others_with_domains.csv.csv', '/tmp/all_sides.csv')
     
         # load domain names into dataframe and then get only names and
         all_sides = pd.read_csv('/tmp/all_sides.csv')
@@ -226,9 +231,7 @@ def return_suggested_articles(request):
     
         
     
-    # get list of google queries
-    queries = []
-    
+    # get dictionary of google queries    
     queries_dict = {}
     
     # quick manual entry
@@ -237,78 +240,70 @@ def return_suggested_articles(request):
     
     for domain in all_sides_domains:
         query = 'www.google.com/search?q=site:'+domain+lda_top_topic_words
-        queries.append(query)
         
         queries_dict[domain] = query
     
-    # queries_dict = {}
-    # queries_dict = {'abcnews.go.com': 'www.google.com/search?q=site:abcnews.go.com biden debate joe',
-    #             'aljazeera.com': 'www.google.com/search?q=site:aljazeera.com biden debate joe',
-    #             'apnews.com': 'www.google.com/search?q=site:apnews.com biden debate joe',
-    #             'bbc.com': 'www.google.com/search?q=site:bbc.com biden debate joe',
-    #             'bloomberg.com': 'www.google.com/search?q=site:bloomberg.com biden debate joe',
-    #             'breitbart.com': 'www.google.com/search?q=site:breitbart.com biden debate joe',
-    #             'buzzfeednews.com': 'www.google.com/search?q=site:buzzfeednews.com biden debate joe',
-    #             'cbn.com': 'www.google.com/search?q=site:cbn.com biden debate joe',
-    #             'cbsnews.com': 'www.google.com/search?q=site:cbsnews.com biden debate joe',
-    #             'csmonitor.com': 'www.google.com/search?q=site:csmonitor.com biden debate joe',
-    #             'cnn.com': 'www.google.com/search?q=site:cnn.com biden debate joe',
-    #             'thedailybeast.com': 'www.google.com/search?q=site:thedailybeast.com biden debate joe',
-    #             'democracynow.org': 'www.google.com/search?q=site:democracynow.org biden debate joe',
-    #             'factcheck.org': 'www.google.com/search?q=site:factcheck.org biden debate joe',
-    #             'forbes.com': 'www.google.com/search?q=site:forbes.com biden debate joe',
-    #             'foxnews.com': 'www.google.com/search?q=site:foxnews.com biden debate joe',
-    #             'huffpost.com': 'www.google.com/search?q=site:huffpost.com biden debate joe',
-    #             'motherjones.com': 'www.google.com/search?q=site:motherjones.com biden debate joe',
-    #             'msnbc.com': 'www.google.com/search?q=site:msnbc.com biden debate joe',
-    #             'nationalreview.com': 'www.google.com/search?q=site:nationalreview.com biden debate joe',
-    #             'nbcnews.com': 'www.google.com/search?q=site:nbcnews.com biden debate joe',
-    #             'nypost.com': 'www.google.com/search?q=site:nypost.com biden debate joe',
-    #             'nytimes.com': 'www.google.com/search?q=site:nytimes.com biden debate joe',
-    #             'newsmax.com': 'www.google.com/search?q=site:newsmax.com biden debate joe',
-    #             'npr.org': 'www.google.com/search?q=site:npr.org biden debate joe',
-    #             'politico.com': 'www.google.com/search?q=site:politico.com biden debate joe',
-    #             'reason.com': 'www.google.com/search?q=site:reason.com biden debate joe',
-    #             'reuters.com': 'www.google.com/search?q=site:reuters.com biden debate joe',
-    #             'salon.com': 'www.google.com/search?q=site:salon.com biden debate joe',
-    #             'spectator.org': 'www.google.com/search?q=site:spectator.org biden debate joe',
-    #             'theatlantic.com': 'www.google.com/search?q=site:theatlantic.com biden debate joe',
-    #             'theguardian.com': 'www.google.com/search?q=site:theguardian.com biden debate joe',
-    #             'thehill.com': 'www.google.com/search?q=site:thehill.com biden debate joe',
-    #             'wsj.com': 'www.google.com/search?q=site:wsj.com biden debate joe'}
+    '''
+    
+    queries_dict = {}
+    queries_dict = {'abcnews.go.com': 'www.google.com/search?q=site:abcnews.go.com biden debate joe',
+                'aljazeera.com': 'www.google.com/search?q=site:aljazeera.com biden debate joe',
+                'apnews.com': 'www.google.com/search?q=site:apnews.com biden debate joe',
+                'bbc.com': 'www.google.com/search?q=site:bbc.com biden debate joe',
+                'bloomberg.com': 'www.google.com/search?q=site:bloomberg.com biden debate joe',
+                'breitbart.com': 'www.google.com/search?q=site:breitbart.com biden debate joe',
+                'buzzfeednews.com': 'www.google.com/search?q=site:buzzfeednews.com biden debate joe',
+                'cbn.com': 'www.google.com/search?q=site:cbn.com biden debate joe',
+                'cbsnews.com': 'www.google.com/search?q=site:cbsnews.com biden debate joe',
+                'csmonitor.com': 'www.google.com/search?q=site:csmonitor.com biden debate joe',
+                'cnn.com': 'www.google.com/search?q=site:cnn.com biden debate joe',
+                'thedailybeast.com': 'www.google.com/search?q=site:thedailybeast.com biden debate joe',
+                'democracynow.org': 'www.google.com/search?q=site:democracynow.org biden debate joe',
+                'factcheck.org': 'www.google.com/search?q=site:factcheck.org biden debate joe',
+                'forbes.com': 'www.google.com/search?q=site:forbes.com biden debate joe',
+                'foxnews.com': 'www.google.com/search?q=site:foxnews.com biden debate joe',
+                'huffpost.com': 'www.google.com/search?q=site:huffpost.com biden debate joe',
+                'motherjones.com': 'www.google.com/search?q=site:motherjones.com biden debate joe',
+                'msnbc.com': 'www.google.com/search?q=site:msnbc.com biden debate joe',
+                'nationalreview.com': 'www.google.com/search?q=site:nationalreview.com biden debate joe',
+                'nbcnews.com': 'www.google.com/search?q=site:nbcnews.com biden debate joe',
+                'nypost.com': 'www.google.com/search?q=site:nypost.com biden debate joe',
+                'nytimes.com': 'www.google.com/search?q=site:nytimes.com biden debate joe',
+                'newsmax.com': 'www.google.com/search?q=site:newsmax.com biden debate joe',
+                'npr.org': 'www.google.com/search?q=site:npr.org biden debate joe',
+                'politico.com': 'www.google.com/search?q=site:politico.com biden debate joe',
+                'reason.com': 'www.google.com/search?q=site:reason.com biden debate joe',
+                'reuters.com': 'www.google.com/search?q=site:reuters.com biden debate joe',
+                'salon.com': 'www.google.com/search?q=site:salon.com biden debate joe',
+                'spectator.org': 'www.google.com/search?q=site:spectator.org biden debate joe',
+                'theatlantic.com': 'www.google.com/search?q=site:theatlantic.com biden debate joe',
+                'theguardian.com': 'www.google.com/search?q=site:theguardian.com biden debate joe',
+                'thehill.com': 'www.google.com/search?q=site:thehill.com biden debate joe',
+                'wsj.com': 'www.google.com/search?q=site:wsj.com biden debate joe'}
         
     return json.dumps(queries_dict)
 
 
-def download_from_bucket(bucket_name,source_data_name,destination_file_name):
+def download_blob(bucket_name, source_blob_name, destination_file_name):
     """
-    
-
-    Parameters
-    ----------
-    bucket_name : name of the bucket on google cloud.
-    source_data_name : name of the data set.
-    destination_file_name : where the data will be stored.
-
-    Returns
-    -------
-    None.
-
+    Downloads a blob from the bucket.
+    From: https://cloud.google.com/storage/docs/downloading-objects#code-samples
     """
-    
-    # load instance of the storage client
+    # bucket_name = "your-bucket-name"
+    # source_blob_name = "storage-object-name"
+    # destination_file_name = "local/path/to/file"
+
     storage_client = storage.Client()
-    
-    # get the bucket from the bucket name
-    bucket = storage_client.get_bucket(bucket_name)
-    
-    # get the data set/bloc
-    data_set = bucket.blob(source_data_name)
-    
-    # save the dataset at the destination file name
-    data_set.download_to_filename(destination_file_name)
-    
-    print(f'Blob data {source_data_name} downloaded to {destination_file_name}')
+
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(source_blob_name)
+    blob.download_to_filename(destination_file_name)
+
+    print(
+        "Blob {} downloaded to {}.".format(
+            source_blob_name, destination_file_name
+        )
+    )
     
 def entity_recognizer(raw_text,nlp):
     """Function that recognizes specific entitites, returns dictionary of them"""
