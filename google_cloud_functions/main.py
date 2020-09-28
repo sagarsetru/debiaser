@@ -85,7 +85,7 @@ def return_suggested_articles(request):
     num_lda_topics = 1
     
     # set the number of passes
-    n_passes = 10
+    n_passes = 5
     
     print('Downloading stop words')
     # download stopwords list
@@ -107,6 +107,7 @@ def return_suggested_articles(request):
     stop_words.append('youre')
     stop_words.append('mph')
     stop_words.append('inc')
+    # stop_words.append('factset')
     
     print('Downloading news organizations from AllSidesMedia')
     # download all_sides_media list
@@ -577,28 +578,3 @@ def sort_topics_mean_frequency(topics,topics_mean_probs_dict,topics_std_probs_di
     x_topics_freq = x_topics_freq[::-1]
     
     return x_topics_means, y_means_sorted, y_std_sorted, x_topics_freq, y_freq_sorted
-
-
-# def read_article(file_json):
-#     """
-#     receives text via read_article() function
-
-#     initial template following 'building a serverless chrome extention',
-#     TDS article by Bilal Tahir, May 29, 2019
-#     Parameters
-#     ----------
-#     file_json : json file for given webpage.
-
-#     Returns
-#     -------
-#     None.
-
-#     """
-    
-#     article = ''
-#     filedata = json.dumps(file_json)
-    
-#     if len(filedata) < 1000000:
-#         article = filedata
-    
-#     return article
