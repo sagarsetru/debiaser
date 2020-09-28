@@ -150,12 +150,17 @@ def return_suggested_articles(request):
     processed_corpus, processed_dictionary, bow_corpus = get_simple_corpus_dictionary_bow(article_processed)
     print('TIME FOR GENERATING DICTIONARY AND BOW VECTOR')
     print(time.process_time() - start)
-    '''
+    
+    print('generating lda model...')
+    start = time.process_time()
     # generate the LDA model
     lda = LdaModel(corpus = bow_corpus,
                     num_topics = num_lda_topics,
                     id2word = processed_dictionary,
                     passes = n_passes)
+    print('TIME FOR GENERATING LDA MODEL')
+    print(time.process_time() - start)
+    
     
     # get the topics from the lda model
     lda_topics = lda.show_topics(formatted = False)
@@ -252,43 +257,41 @@ def return_suggested_articles(request):
         
         queries_dict[domain] = query
     
-    '''
-    
-    queries_dict = {}
-    queries_dict = {'abcnews.go.com': 'www.google.com/search?q=site:abcnews.go.com biden debate joe',
-                'aljazeera.com': 'www.google.com/search?q=site:aljazeera.com biden debate joe',
-                'apnews.com': 'www.google.com/search?q=site:apnews.com biden debate joe',
-                'bbc.com': 'www.google.com/search?q=site:bbc.com biden debate joe',
-                'bloomberg.com': 'www.google.com/search?q=site:bloomberg.com biden debate joe',
-                'breitbart.com': 'www.google.com/search?q=site:breitbart.com biden debate joe',
-                'buzzfeednews.com': 'www.google.com/search?q=site:buzzfeednews.com biden debate joe',
-                'cbn.com': 'www.google.com/search?q=site:cbn.com biden debate joe',
-                'cbsnews.com': 'www.google.com/search?q=site:cbsnews.com biden debate joe',
-                'csmonitor.com': 'www.google.com/search?q=site:csmonitor.com biden debate joe',
-                'cnn.com': 'www.google.com/search?q=site:cnn.com biden debate joe',
-                'thedailybeast.com': 'www.google.com/search?q=site:thedailybeast.com biden debate joe',
-                'democracynow.org': 'www.google.com/search?q=site:democracynow.org biden debate joe',
-                'factcheck.org': 'www.google.com/search?q=site:factcheck.org biden debate joe',
-                'forbes.com': 'www.google.com/search?q=site:forbes.com biden debate joe',
-                'foxnews.com': 'www.google.com/search?q=site:foxnews.com biden debate joe',
-                'huffpost.com': 'www.google.com/search?q=site:huffpost.com biden debate joe',
-                'motherjones.com': 'www.google.com/search?q=site:motherjones.com biden debate joe',
-                'msnbc.com': 'www.google.com/search?q=site:msnbc.com biden debate joe',
-                'nationalreview.com': 'www.google.com/search?q=site:nationalreview.com biden debate joe',
-                'nbcnews.com': 'www.google.com/search?q=site:nbcnews.com biden debate joe',
-                'nypost.com': 'www.google.com/search?q=site:nypost.com biden debate joe',
-                'nytimes.com': 'www.google.com/search?q=site:nytimes.com biden debate joe',
-                'newsmax.com': 'www.google.com/search?q=site:newsmax.com biden debate joe',
-                'npr.org': 'www.google.com/search?q=site:npr.org biden debate joe',
-                'politico.com': 'www.google.com/search?q=site:politico.com biden debate joe',
-                'reason.com': 'www.google.com/search?q=site:reason.com biden debate joe',
-                'reuters.com': 'www.google.com/search?q=site:reuters.com biden debate joe',
-                'salon.com': 'www.google.com/search?q=site:salon.com biden debate joe',
-                'spectator.org': 'www.google.com/search?q=site:spectator.org biden debate joe',
-                'theatlantic.com': 'www.google.com/search?q=site:theatlantic.com biden debate joe',
-                'theguardian.com': 'www.google.com/search?q=site:theguardian.com biden debate joe',
-                'thehill.com': 'www.google.com/search?q=site:thehill.com biden debate joe',
-                'wsj.com': 'www.google.com/search?q=site:wsj.com biden debate joe'}
+    # queries_dict = {}
+    # queries_dict = {'abcnews.go.com': 'www.google.com/search?q=site:abcnews.go.com biden debate joe',
+    #             'aljazeera.com': 'www.google.com/search?q=site:aljazeera.com biden debate joe',
+    #             'apnews.com': 'www.google.com/search?q=site:apnews.com biden debate joe',
+    #             'bbc.com': 'www.google.com/search?q=site:bbc.com biden debate joe',
+    #             'bloomberg.com': 'www.google.com/search?q=site:bloomberg.com biden debate joe',
+    #             'breitbart.com': 'www.google.com/search?q=site:breitbart.com biden debate joe',
+    #             'buzzfeednews.com': 'www.google.com/search?q=site:buzzfeednews.com biden debate joe',
+    #             'cbn.com': 'www.google.com/search?q=site:cbn.com biden debate joe',
+    #             'cbsnews.com': 'www.google.com/search?q=site:cbsnews.com biden debate joe',
+    #             'csmonitor.com': 'www.google.com/search?q=site:csmonitor.com biden debate joe',
+    #             'cnn.com': 'www.google.com/search?q=site:cnn.com biden debate joe',
+    #             'thedailybeast.com': 'www.google.com/search?q=site:thedailybeast.com biden debate joe',
+    #             'democracynow.org': 'www.google.com/search?q=site:democracynow.org biden debate joe',
+    #             'factcheck.org': 'www.google.com/search?q=site:factcheck.org biden debate joe',
+    #             'forbes.com': 'www.google.com/search?q=site:forbes.com biden debate joe',
+    #             'foxnews.com': 'www.google.com/search?q=site:foxnews.com biden debate joe',
+    #             'huffpost.com': 'www.google.com/search?q=site:huffpost.com biden debate joe',
+    #             'motherjones.com': 'www.google.com/search?q=site:motherjones.com biden debate joe',
+    #             'msnbc.com': 'www.google.com/search?q=site:msnbc.com biden debate joe',
+    #             'nationalreview.com': 'www.google.com/search?q=site:nationalreview.com biden debate joe',
+    #             'nbcnews.com': 'www.google.com/search?q=site:nbcnews.com biden debate joe',
+    #             'nypost.com': 'www.google.com/search?q=site:nypost.com biden debate joe',
+    #             'nytimes.com': 'www.google.com/search?q=site:nytimes.com biden debate joe',
+    #             'newsmax.com': 'www.google.com/search?q=site:newsmax.com biden debate joe',
+    #             'npr.org': 'www.google.com/search?q=site:npr.org biden debate joe',
+    #             'politico.com': 'www.google.com/search?q=site:politico.com biden debate joe',
+    #             'reason.com': 'www.google.com/search?q=site:reason.com biden debate joe',
+    #             'reuters.com': 'www.google.com/search?q=site:reuters.com biden debate joe',
+    #             'salon.com': 'www.google.com/search?q=site:salon.com biden debate joe',
+    #             'spectator.org': 'www.google.com/search?q=site:spectator.org biden debate joe',
+    #             'theatlantic.com': 'www.google.com/search?q=site:theatlantic.com biden debate joe',
+    #             'theguardian.com': 'www.google.com/search?q=site:theguardian.com biden debate joe',
+    #             'thehill.com': 'www.google.com/search?q=site:thehill.com biden debate joe',
+    #             'wsj.com': 'www.google.com/search?q=site:wsj.com biden debate joe'}
         
     return json.dumps(queries_dict)
 
