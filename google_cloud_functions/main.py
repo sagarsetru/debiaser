@@ -18,12 +18,14 @@ from gensim.utils import simple_preprocess
 from nltk import tokenize
 
 # following https://stackoverflow.com/questions/62209018/any-way-to-import-pythons-nltk-downloadpunkt-into-google-cloud-functions
-import nltk.data as nldata
-root = os.path.dirname(os.path.abspath(__file__))
-download_dir = os.path.join(root, 'nltk_data')
-nldata.load(
-    os.path.join(download_dir, 'tokenizers/punkt/english.pickle')
-)
+# import nltk.data as nldata
+# root = os.path.dirname(os.path.abspath(__file__))
+# download_dir = os.path.join(root, 'nltk_data')
+# nldata.load(
+#     os.path.join(download_dir, 'tokenizers/punkt/english.pickle')
+# )
+from nltk import download as nldl
+nldl('punkt')
 # os.environ['NLTK_DATA'] = nltk_data
 
 # from nltk.corpus import stopwords
