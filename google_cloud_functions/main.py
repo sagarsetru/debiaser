@@ -7,6 +7,7 @@ import pandas as pd
 import numpy as np
 import os
 
+
 # NLP Packages
 
 from gensim.corpora import Dictionary
@@ -15,6 +16,16 @@ from gensim.utils import simple_preprocess
 
 # to break articles up into sentences
 from nltk import tokenize
+
+# following https://stackoverflow.com/questions/62209018/any-way-to-import-pythons-nltk-downloadpunkt-into-google-cloud-functions
+import nltk.data as nldata
+root = os.path.dirname(os.path.abspath(__file__))
+download_dir = os.path.join(root, 'nltk_data')
+nldata.load(
+    os.path.join(download_dir, 'tokenizers/punkt/english.pickle')
+)
+# os.environ['NLTK_DATA'] = nltk_data
+
 # from nltk.corpus import stopwords
 
 # for counting frequency of words
@@ -94,10 +105,10 @@ def return_suggested_articles(request):
     
     # download all_sides_media list
     # if use_bucket:
-    download_blob('debiaser_data','allsides_final_plus_others_with_domains.csv', '/tmp/all_sides.csv')
+    download_blob('debiaser_data','allsides_final_plus_others_with_domains.csv', '/tmp/allsides_final_plus_others_with_domains.csv')
 
     # load domain names into dataframe and then get only names and
-    all_sides = pd.read_csv('/tmp/all_sides.csv')
+    all_sides = pd.read_csv('/tmp/allsides_final_plus_others_with_domains.csv')
     
     # remove from memory
     os.remove('/tmp/all_sides.csv')
@@ -110,10 +121,10 @@ def return_suggested_articles(request):
     # get dictionary of entities in article
     # entity_dict = entity_recognizer(combined_article,nlp)
     
-    '''
+    
     # break up into sentences
     combined_article = tokenize.sent_tokenize(combined_article)
-    
+    '''
     # process article
     article_processed = process_all_articles(combined_article,nlp)
     
