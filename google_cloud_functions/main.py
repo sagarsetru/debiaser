@@ -79,13 +79,13 @@ def return_suggested_articles(request):
     
     # only for use when using one topic; this is number of words from that topic
     # that will be used in search
-    n_topic_words = 3
+    n_topic_words = 5
     
     # set the number of topics to generate (5 seems to work pretty well)
     num_lda_topics = 1
     
     # set the number of passes
-    n_passes = 1
+    n_passes = 100
     
     print('Downloading stop words')
     # download stopwords list
