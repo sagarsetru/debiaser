@@ -1,6 +1,7 @@
 import json
 
 from google.cloud import storage
+from flask import escape
 
 import pandas as pd
 import numpy as np
@@ -46,178 +47,235 @@ def return_suggested_articles(request):
 
     """    
     
-    use_bucket = 1
+    
     
     # get the requested json for the webpage
     request_json = request.get_json(silent=True)
     
-    # get the headline and article
-    headline = request_json['headline']
-    article = request_json['article']
+    # # get the headline and article
+    # headline = request_json['headline']
+    # article = request_json['article']
     
-    # make into one text file
-    combined_article = headline+article
+    # # make into one text file
+    # combined_article = headline+article
     
-    # download stopwords list
-    if use_bucket:
-        download_from_bucket('debiaser_data', 'sw1k.csv', '/tmp/stop_words_1k.csv')
+    # use_bucket = 1
     
-        # load stop words into pandas and then into list
-        stop_words = pd.read_csv('/tmp/stop_words_1k.csv')
+    # # if avoiding repeated words (only relevant if num_lda_topics > 1)
+    # unique_topic_words = 0
     
-    else:
-        # stop_words = pd.read_csv('/Users/sagarsetru/Documents/post PhD positions search/insightDataScience/project/debiaser/stop_words_db/news-stopwords-master/sw1k.csv')
+    # # only for use when using one topic; this is number of words from that topic
+    # # that will be used in search
+    # n_topic_words = 3
+    
+    # # set the number of topics to generate (5 seems to work pretty well)
+    # num_lda_topics = 1
+    
+    # # set the number of passes
+    # n_passes = 1
+    
+    
+    # # download stopwords list
+    # if use_bucket:
+    #     download_from_bucket('debiaser_data', 'sw1k.csv', '/tmp/stop_words_1k.csv')
+    
+    #     # load stop words into pandas and then into list
+    #     stop_words = pd.read_csv('/tmp/stop_words_1k.csv')
+    
+    # else:
+    #     # stop_words = pd.read_csv('/Users/sagarsetru/Documents/post PhD positions search/insightDataScience/project/debiaser/stop_words_db/news-stopwords-master/sw1k.csv')
         
-        # use nltk stopwords
-        stop_words = list(stopwords.words('english'))
+    #     # use nltk stopwords
+    #     stop_words = list(stopwords.words('english'))
         
-    stop_words = stop_words['term']
-    stop_words = [word for word in stop_words]
+    # stop_words = stop_words['term']
+    # stop_words = [word for word in stop_words]
     
-    # # adding some custom words
+    # # # adding some custom words
     # stop_words.append('said')
     # stop_words.append('youre')
     # stop_words.append('mph')
     
     
-    # download all_sides_media list
-    if use_bucket:
-        download_from_bucket('debiaser_data','allsides_final_plus_others_with_domains.csv.csv', '/tmp/all_sides.csv')
+    # # download all_sides_media list
+    # if use_bucket:
+    #     download_from_bucket('debiaser_data','allsides_final_plus_others_with_domains.csv.csv', '/tmp/all_sides.csv')
     
-        # load domain names into dataframe and then get only names and
-        all_sides = pd.read_csv('/tmp/all_sides.csv')
+    #     # load domain names into dataframe and then get only names and
+    #     all_sides = pd.read_csv('/tmp/all_sides.csv')
     
-    else:
-        all_sides = pd.read_csv('/Users/sagarsetru/Documents/post PhD positions search/insightDataScience/project/debiaser/all_sides_media_data/allsides_final_plus_others_with_domains.csv')
+    # else:
+    #     all_sides = pd.read_csv('/Users/sagarsetru/Documents/post PhD positions search/insightDataScience/project/debiaser/all_sides_media_data/allsides_final_plus_others_with_domains.csv')
     
-    all_sides_names = all_sides['name']
-    all_sides_domains = all_sides['domain']
-    # all_sides_names_domains = pd.concat([all_sides_names,all_sides_domains],axis=1)
+    # all_sides_names = all_sides['name']
+    # all_sides_domains = all_sides['domain']
+    # # all_sides_names_domains = pd.concat([all_sides_names,all_sides_domains],axis=1)
     
-    # clean up workspace for memory
-    if use_bucket:
-        os.remove('/tmp/all_sides.csv')
-        os.remove('/tmp/stop_words_1k.csv')
+    # # clean up workspace for memory
+    # if use_bucket:
+    #     os.remove('/tmp/all_sides.csv')
+    #     os.remove('/tmp/stop_words_1k.csv')
     
-    # get dictionary of entities in article
-    # entity_dict = entity_recognizer(combined_article,nlp)
+    # # get dictionary of entities in article
+    # # entity_dict = entity_recognizer(combined_article,nlp)
     
-    # replace weird apostrophes
-    combined_article = combined_article.replace("`","'")
-    combined_article = combined_article.replace("’","'")
-    combined_article = combined_article.replace("'","'")
+    # # break up into sentences
+    # combined_article = tokenize.sent_tokenize(combined_article)
     
-    # replace long dashes with short dashes
-    combined_article = combined_article.replace("—","-")
+    # # process article
+    # article_processed = process_all_articles(combined_article)
     
-    # replace short dashes with spaces
-    combined_article = combined_article.replace("-"," ")
+    # # remove stopwords
+    # article_processed = remove_stopwords(article_processed,stop_words)
     
-    # break up into sentences
-    combined_article = tokenize.sent_tokenize(combined_article)
+    # # floor for the frequency of words to remove
+    # word_frequency_threshold = 1
     
-    # process article
-    article_processed = process_all_articles(combined_article)
+    # # get corpus, dictionary, bag of words
+    # processed_corpus, processed_dictionary, bow_corpus = get_simple_corpus_dictionary_bow(article_processed,
+    #                                                                                       word_frequency_threshold)
     
-    # remove stopwords
-    article_processed = remove_stopwords(article_processed,stop_words)
+    # # generate the LDA model
+    # lda = LdaModel(corpus = bow_corpus,
+    #                num_topics = num_lda_topics,
+    #                id2word = processed_dictionary,
+    #                passes = n_passes)
     
-    # floor for the frequency of words to remove
-    word_frequency_threshold = 1
-    
-    # get corpus, dictionary, bag of words
-    processed_corpus, processed_dictionary, bow_corpus = get_simple_corpus_dictionary_bow(article_processed,
-                                                                                          word_frequency_threshold)
-    
-    # set the number of topics to generate (5 seems to work pretty well)
-    num_lda_topics = 5
-    
-    # set the number of passes
-    n_passes = 100
-    
-    # generate the LDA model
-    lda = LdaModel(corpus = bow_corpus,
-                   num_topics = num_lda_topics,
-                   id2word = processed_dictionary,
-                   passes = n_passes)
-    
-    # get the topics from the lda model
-    lda_topics = lda.show_topics(formatted = False)
+    # # get the topics from the lda model
+    # lda_topics = lda.show_topics(formatted = False)
     
     
-    # ALL INTERESTING BUT DEPRECATED FOR NOW
-    # WILL FOLLOW SIMPLER APPROACH:
-        # Just take top word in each generated topic
+    # # ALL INTERESTING BUT DEPRECATED FOR NOW
+    # # WILL FOLLOW SIMPLER APPROACH:
+    #     # Just take top word in each generated topic
         
-    # get top words per topic
-    lda_top_topic_words = []
+    # # get top words per topic
     
-    # loop through each list of generated topics
-    for topic in lda_topics:
+    # #  # string is for final search string
+    # lda_top_topic_words = ''
+    
+    # # list is for checking previous words
+    # lda_top_topic_words_list = []
+    
+    
+    # if num_lda_topics > 1:
+    
+    #     if not unique_topic_words:
         
-        # get the list of topics
-        topic_words = topic[1]
-        
-        lda_top_topic_words.append(topic_words[0][0])
-    
-    # get list of google queries
-    queries = []
-    
-    # quick manual entry
-    # all_sides_domains = ['nytimes.com','apnews.com','reuters.com','wsj.com']
-    # all_sides_names = ['nyt','ap','reuters','wsj']
-    
-    for domain in all_sides_domains:
-        query = 'site:'+domain+lda_top_topic_words
-        queries.append(query)        
-    
-    # create dictionary for results of query
-    query_results = {}
-
-    # loop through queries
-    for ind, query in enumerate(queries):
-        
-        # initialize list for results of query
-        current_results = []
-        
-        # loop through search results
-        for j in search(query, tld='com', lang='en', num = 1, start=0, stop = 5, pause = 2.0):
+    #         for topic in lda_topics:
+                
+    #             # get the list of topics
+    #             topic_words = topic[1]
+                
+    #             lda_top_topic_words += ' '+topic_words[0][0]
             
-            # append search result to current list of results
-            current_results.append(j)
+    #     else:
             
-        # append list of results from query to dictionary for that query
-        query_results[all_sides_names.iloc[ind]] = current_results
+    #         # loop through each list of generated topics
+    #         for topic in lda_topics:
+                
+    #             # set word added to 0
+    #             word_added = 0
+                
+    #             # get the list of topics
+    #             topic_words = topic[1]
+                    
+    #             # loop through words in topic
+    #             # add as search term only if they aren't already search terms
+    #             for i in range(len(topic_words)):
+                
+    #                 # if the current word in topic is not in list of search terms
+    #                 if topic_words[i][0] not in lda_top_topic_words_list:
+                        
+    #                     # add this word to list of topic/search terms
+    #                     lda_top_topic_words_list.append(topic_words[i][0])
+                        
+    #                     # also update the string for the search terms
+    #                     lda_top_topic_words += ' '+topic_words[i][0]
+                        
+    #                     # update word added
+    #                     word_added = 1
+    #                     break
+                
+    #             # if no word was added because all supporting words in topic are already
+    #             # search terms, then just add the highest prob/first word in topic
+    #             if word_added == 0:
+    #                 # if every word in this topic is already a search term,
+    #                 # just add the first most probable word and leave the while loop
+    #                 lda_top_topic_words_list.append(topic_words[0][0])
+    #                 lda_top_topic_words += ' '+topic_words[0][0]
+                    
+    # else:
+        
+    #     for topic in lda_topics:
+                
+    #             # get the list of topic words
+    #             topic_words = topic[1]
+                
+    #             # loop through these words and get the top n number
+    #             counter = -1
+    #             for topic_word in topic_words:
+                    
+    #                 counter += 1
+                    
+    #                 if counter < n_topic_words:
+                    
+    #                     lda_top_topic_words += ' '+topic_word[0]
     
-    # also create entry in dictionary for the search terms
-    query_results['search_terms'] = lda_top_topic_words
+        
     
+    # # get list of google queries
+    # queries = []
     
-    # convert dictionary to json dictionary
-    json_object = json.dumps(query_results, indent = 4)
+    # queries_dict = {}
     
-    return json_object
+    # # quick manual entry
+    # # all_sides_domains = ['nytimes.com','wsj.com']
+    # # all_sides_names = ['nyt','wsj']
     
-    # # get the unique topic words
-    # # get dictionary of each topic word and their associated probabilities per topic
-    # # get dictionary of each topic word and their mean probability
-    # # get dictionary of each topic word and their std dev probability
-    # # get dictionary of each topic word and the frequency with which the words show up
-    # topics, topics_probs_dict, topics_mean_probs_dict, topics_std_probs_dict, topics_frequency_dict = get_topic_words_mean_std_prob_frequency(lda_topics)
+    # for domain in all_sides_domains:
+    #     query = 'www.google.com/search?q=site:'+domain+lda_top_topic_words
+    #     queries.append(query)
+        
+    #     queries_dict[domain] = query
     
-    # # get the topic mean probs and frequencies, sorted
-    # topics_means, means_sorted, std_sorted, topics_freq, freq_sorted = sort_topics_mean_frequency(topics,
-    #                                          topics_mean_probs_dict,
-    #                                          topics_std_probs_dict,
-    #                                          topics_frequency_dict)
-    
-    
-    
-    # # get the words to use in google search
-    # # (for now, just pick the top 3 probs and top 2 most common)
-    # words_to_search = [topics_means[0:2],topics_freq[]
-    
-    # return json.dumps(combined_article)
+    queries_dict = {}
+    queries_dict = {'abcnews.go.com': 'www.google.com/search?q=site:abcnews.go.com biden debate joe',
+                'aljazeera.com': 'www.google.com/search?q=site:aljazeera.com biden debate joe',
+                'apnews.com': 'www.google.com/search?q=site:apnews.com biden debate joe',
+                'bbc.com': 'www.google.com/search?q=site:bbc.com biden debate joe',
+                'bloomberg.com': 'www.google.com/search?q=site:bloomberg.com biden debate joe',
+                'breitbart.com': 'www.google.com/search?q=site:breitbart.com biden debate joe',
+                'buzzfeednews.com': 'www.google.com/search?q=site:buzzfeednews.com biden debate joe',
+                'cbn.com': 'www.google.com/search?q=site:cbn.com biden debate joe',
+                'cbsnews.com': 'www.google.com/search?q=site:cbsnews.com biden debate joe',
+                'csmonitor.com': 'www.google.com/search?q=site:csmonitor.com biden debate joe',
+                'cnn.com': 'www.google.com/search?q=site:cnn.com biden debate joe',
+                'thedailybeast.com': 'www.google.com/search?q=site:thedailybeast.com biden debate joe',
+                'democracynow.org': 'www.google.com/search?q=site:democracynow.org biden debate joe',
+                'factcheck.org': 'www.google.com/search?q=site:factcheck.org biden debate joe',
+                'forbes.com': 'www.google.com/search?q=site:forbes.com biden debate joe',
+                'foxnews.com': 'www.google.com/search?q=site:foxnews.com biden debate joe',
+                'huffpost.com': 'www.google.com/search?q=site:huffpost.com biden debate joe',
+                'motherjones.com': 'www.google.com/search?q=site:motherjones.com biden debate joe',
+                'msnbc.com': 'www.google.com/search?q=site:msnbc.com biden debate joe',
+                'nationalreview.com': 'www.google.com/search?q=site:nationalreview.com biden debate joe',
+                'nbcnews.com': 'www.google.com/search?q=site:nbcnews.com biden debate joe',
+                'nypost.com': 'www.google.com/search?q=site:nypost.com biden debate joe',
+                'nytimes.com': 'www.google.com/search?q=site:nytimes.com biden debate joe',
+                'newsmax.com': 'www.google.com/search?q=site:newsmax.com biden debate joe',
+                'npr.org': 'www.google.com/search?q=site:npr.org biden debate joe',
+                'politico.com': 'www.google.com/search?q=site:politico.com biden debate joe',
+                'reason.com': 'www.google.com/search?q=site:reason.com biden debate joe',
+                'reuters.com': 'www.google.com/search?q=site:reuters.com biden debate joe',
+                'salon.com': 'www.google.com/search?q=site:salon.com biden debate joe',
+                'spectator.org': 'www.google.com/search?q=site:spectator.org biden debate joe',
+                'theatlantic.com': 'www.google.com/search?q=site:theatlantic.com biden debate joe',
+                'theguardian.com': 'www.google.com/search?q=site:theguardian.com biden debate joe',
+                'thehill.com': 'www.google.com/search?q=site:thehill.com biden debate joe',
+                'wsj.com': 'www.google.com/search?q=site:wsj.com biden debate joe'}
+        
+    return json.dumps(queries_dict)
 
 
 def download_from_bucket(bucket_name,source_data_name,destination_file_name):
