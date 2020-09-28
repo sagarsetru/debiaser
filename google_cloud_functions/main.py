@@ -85,7 +85,7 @@ def return_suggested_articles(request):
     num_lda_topics = 1
     
     # set the number of passes
-    n_passes = 100
+    n_passes = 10
     
     print('Downloading stop words')
     # download stopwords list
