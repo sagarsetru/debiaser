@@ -107,6 +107,7 @@ def return_suggested_articles(request):
     stop_words.append('youre')
     stop_words.append('mph')
     stop_words.append('inc')
+    stop_words.append('cov')
     # stop_words.append('factset')
     
     print('Downloading news organizations from AllSidesMedia')
