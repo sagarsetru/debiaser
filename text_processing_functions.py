@@ -9,9 +9,6 @@ Created on Tue Sep 22 10:53:43 2020
 # gensim
 import json
 
-from google.cloud import storage
-from flask import escape
-
 import pandas as pd
 import numpy as np
 import os
