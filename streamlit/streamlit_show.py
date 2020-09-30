@@ -27,6 +27,9 @@ from nltk.corpus import stopwords
 # for counting frequency of words
 from collections import defaultdict
 
+# for bi tri quad grams via word 2 vec
+import gensim.models.keyedvectors as word2vec
+
 # import spacy
 # nlp  = spacy.load('en_core_web_sm')
 nlp = []
@@ -36,6 +39,8 @@ from googlesearch import search
 import requests
 
 from bs4 import BeautifulSoup
+
+import time
 
 # import urllib3
 # import urllib
@@ -62,11 +67,13 @@ def return_suggested_articles2(url):
     
     # only for use when using one topic; this is number of words from that topic
     # that will be used in search
-    n_topic_words = 3
+    n_topic_words = 5
     
     num_lda_topics = 1
     
-    n_passes = 1
+    n_passes = 5
+    
+    print_article = 0
     
     # get html content of url
     page = requests.get(url)
@@ -101,7 +108,8 @@ def return_suggested_articles2(url):
     #     print(p_tags_text_1string)
     
     combined_article = headline+'. '+p_tags_text_1string
-    print(combined_article)
+    if print_article:
+        print(combined_article)
     
     # # get the requested json for the webpage
     # request_json = request.get_json(silent=True)
@@ -158,21 +166,19 @@ def return_suggested_articles2(url):
     # get dictionary of entities in article
     # entity_dict = entity_recognizer(combined_article,nlp)
     
-    # replace weird apostrophes
-    # combined_article = combined_article.replace("`","'")
-    # combined_article = combined_article.replace("’","'")
-    # combined_article = combined_article.replace("'","'")
-    
-    # # replace long dashes with short dashes
-    # combined_article = combined_article.replace("—","-")
-    
-    # # replace short dashes with spaces
-    # combined_article = combined_article.replace("-"," ")
-    
     # break up into sentences
     combined_article = tokenize.sent_tokenize(combined_article)
-    print('TOKENIZED TO SENTENCES')
-    print(combined_article)
+    
+    if print_article:
+        print('TOKENIZED TO SENTENCES')
+        print(combined_article)
+        
+    
+    start = time.process_time()
+    model = word2vec.KeyedVectors.load_word2vec_format('/Users/sagarsetru/Documents/post PhD positions search/insightDataScience/project/debiaser/GoogleNews-vectors-negative300.bin.gz',binary=True)
+    print('TIME FOR LOADING WORD2VEC MODEL')
+    print(time.process_time() - start)
+    
     # process article
     article_processed = process_all_articles(combined_article,nlp)
     
