@@ -52,11 +52,11 @@ def return_suggested_articles(request):
 
     Parameters
     ----------
-    request : request (flask.Request): The request object..
+    request : request (flask.Request): The request object
 
     Returns
     -------
-    articles to read.
+    JSON of google search queries for articles to read
 
     """    
     
@@ -108,6 +108,7 @@ def return_suggested_articles(request):
     stop_words.append('mph')
     stop_words.append('inc')
     stop_words.append('cov')
+    stop_words.append('jr')
     # stop_words.append('factset')
     
     print('Downloading news organizations from AllSidesMedia')
@@ -174,127 +175,17 @@ def return_suggested_articles(request):
         # Just take top word in each generated topic
         
     # get top words per topic
-    
-    #  # string is for final search string
-    lda_top_topic_words = ''
-    
-    # list is for checking previous words
-    lda_top_topic_words_list = []
-    
-    
-    if num_lda_topics > 1:
-    
-        if not unique_topic_words:
-        
-            for topic in lda_topics:
-                
-                # get the list of topics
-                topic_words = topic[1]
-                
-                lda_top_topic_words += ' '+topic_words[0][0]
-            
-        else:
-            
-            # loop through each list of generated topics
-            for topic in lda_topics:
-                
-                # set word added to 0
-                word_added = 0
-                
-                # get the list of topics
-                topic_words = topic[1]
-                    
-                # loop through words in topic
-                # add as search term only if they aren't already search terms
-                for i in range(len(topic_words)):
-                
-                    # if the current word in topic is not in list of search terms
-                    if topic_words[i][0] not in lda_top_topic_words_list:
-                        
-                        # add this word to list of topic/search terms
-                        lda_top_topic_words_list.append(topic_words[i][0])
-                        
-                        # also update the string for the search terms
-                        lda_top_topic_words += ' '+topic_words[i][0]
-                        
-                        # update word added
-                        word_added = 1
-                        break
-                
-                # if no word was added because all supporting words in topic are already
-                # search terms, then just add the highest prob/first word in topic
-                if word_added == 0:
-                    # if every word in this topic is already a search term,
-                    # just add the first most probable word and leave the while loop
-                    lda_top_topic_words_list.append(topic_words[0][0])
-                    lda_top_topic_words += ' '+topic_words[0][0]
-                    
-    else:
-        
-        for topic in lda_topics:
-                
-                # get the list of topic words
-                topic_words = topic[1]
-                
-                # loop through these words and get the top n number
-                counter = -1
-                for topic_word in topic_words:
-                    
-                    counter += 1
-                    
-                    if counter < n_topic_words:
-                    
-                        lda_top_topic_words += ' '+topic_word[0]
+    lda_top_topic_words_string, lda_top_topic_words_list = get_lda_top_topic_words(lda_topics,num_lda_topics,unique_topic_words,n_topic_words)
     
         
-    
     # get dictionary of google queries    
     queries_dict = {}
     
-    # quick manual entry
-    # all_sides_domains = ['nytimes.com','wsj.com']
-    # all_sides_names = ['nyt','wsj']
     
     for domain in all_sides_domains:
-        query = 'www.google.com/search?q=site:'+domain+lda_top_topic_words
+        query = 'www.news.google.com/search?q=site:'+domain+lda_top_topic_words_string
         
         queries_dict[domain] = query
-    
-    # queries_dict = {}
-    # queries_dict = {'abcnews.go.com': 'www.google.com/search?q=site:abcnews.go.com biden debate joe',
-    #             'aljazeera.com': 'www.google.com/search?q=site:aljazeera.com biden debate joe',
-    #             'apnews.com': 'www.google.com/search?q=site:apnews.com biden debate joe',
-    #             'bbc.com': 'www.google.com/search?q=site:bbc.com biden debate joe',
-    #             'bloomberg.com': 'www.google.com/search?q=site:bloomberg.com biden debate joe',
-    #             'breitbart.com': 'www.google.com/search?q=site:breitbart.com biden debate joe',
-    #             'buzzfeednews.com': 'www.google.com/search?q=site:buzzfeednews.com biden debate joe',
-    #             'cbn.com': 'www.google.com/search?q=site:cbn.com biden debate joe',
-    #             'cbsnews.com': 'www.google.com/search?q=site:cbsnews.com biden debate joe',
-    #             'csmonitor.com': 'www.google.com/search?q=site:csmonitor.com biden debate joe',
-    #             'cnn.com': 'www.google.com/search?q=site:cnn.com biden debate joe',
-    #             'thedailybeast.com': 'www.google.com/search?q=site:thedailybeast.com biden debate joe',
-    #             'democracynow.org': 'www.google.com/search?q=site:democracynow.org biden debate joe',
-    #             'factcheck.org': 'www.google.com/search?q=site:factcheck.org biden debate joe',
-    #             'forbes.com': 'www.google.com/search?q=site:forbes.com biden debate joe',
-    #             'foxnews.com': 'www.google.com/search?q=site:foxnews.com biden debate joe',
-    #             'huffpost.com': 'www.google.com/search?q=site:huffpost.com biden debate joe',
-    #             'motherjones.com': 'www.google.com/search?q=site:motherjones.com biden debate joe',
-    #             'msnbc.com': 'www.google.com/search?q=site:msnbc.com biden debate joe',
-    #             'nationalreview.com': 'www.google.com/search?q=site:nationalreview.com biden debate joe',
-    #             'nbcnews.com': 'www.google.com/search?q=site:nbcnews.com biden debate joe',
-    #             'nypost.com': 'www.google.com/search?q=site:nypost.com biden debate joe',
-    #             'nytimes.com': 'www.google.com/search?q=site:nytimes.com biden debate joe',
-    #             'newsmax.com': 'www.google.com/search?q=site:newsmax.com biden debate joe',
-    #             'npr.org': 'www.google.com/search?q=site:npr.org biden debate joe',
-    #             'politico.com': 'www.google.com/search?q=site:politico.com biden debate joe',
-    #             'reason.com': 'www.google.com/search?q=site:reason.com biden debate joe',
-    #             'reuters.com': 'www.google.com/search?q=site:reuters.com biden debate joe',
-    #             'salon.com': 'www.google.com/search?q=site:salon.com biden debate joe',
-    #             'spectator.org': 'www.google.com/search?q=site:spectator.org biden debate joe',
-    #             'theatlantic.com': 'www.google.com/search?q=site:theatlantic.com biden debate joe',
-    #             'theguardian.com': 'www.google.com/search?q=site:theguardian.com biden debate joe',
-    #             'thehill.com': 'www.google.com/search?q=site:thehill.com biden debate joe',
-    #             'wsj.com': 'www.google.com/search?q=site:wsj.com biden debate joe'}
         
     return json.dumps(queries_dict)
 
@@ -454,128 +345,104 @@ def get_simple_corpus_dictionary_bow(texts):
     
     return processed_corpus, processed_dictionary, bow_corpus
 
-def get_topic_words_mean_std_prob_frequency(lda_topics):
+def get_lda_top_topic_words(lda_topics,num_topic,unique_topic_words,n_topic_words):
     """
+    fxn for algorithm to return the top topic words
+    algo varies based on:
+    1) whether only unique words are wanted, and
+    2) whether there is 1 or more topics
     
-
-    Parameters
+                
+    if one topic, just take top word in each generated topic
+    else, if unique_topic_words, get top word in each topic that is unique,
+          else, just get top word in each topic even if it isn't unique
+    
+    parameters
     ----------
-    lda_topics : lda topics from lda, formatted = False, as tuples.
-
-    Returns
+    lda_topics - topic output from lda model
+    num_topic - how many lda topics were generated
+    unique_topic_words - whether to all repeating words as search terms
+    n_topic_words - how many topic words to use as search terms
+    
+    outputs
     -------
-    topics : unique topic words
-    topics_mean_probs_dict : the mean probability of each topic word
-    topics_std_probs_dict : the std dev prb of each topic word
-    topics_frequency_dict : the frequency each topic word shows up in a topic.
-
+    list and string of search/topic words
     """
     
-    # dictionary for topics and the probabilities associated with them
-    topics_probs_dict = {}
-    
-    # list of unique topic names
-    topics = []
-    
-    # loop through each list of generated topics
-    for topic in lda_topics:
-        
-        # get the list of tuples of topic words and the associated probability
-        topic_words = topic[1]
-        
-        # loop through topic words and probabilities
-        for topic_word, prob in topic_words:
-            
-            # if the word isn't already in the list of topics, add it to list of topics
-            if topic_word not in topics: 
-                topics.append(topic_word)
-                
-            # if the word is not a key in the dictionary of topics to probabilities, add it to dictionary
-            if topic_word not in topics_probs_dict.keys():
-                
-                topics_probs_dict[topic_word] = np.array([prob])
-            
-            # if the word is a key in the dictionary of topics to probabilities, append probability
-            else:
-                topics_probs_dict[topic_word] = np.append(topics_probs_dict[topic_word],[prob])
-        
-    # dictionary for topic probability means
-    topics_mean_probs_dict = {}
-    
-    # dictionary for topic probability std devs
-    topics_std_probs_dict = {}
-    
-    # dictionary for topic frequency
-    topics_frequency_dict = {}
+    # string is for final search string
+    lda_top_topic_words_string = ''
 
-    # loop through topics and probabilities
-    for topic, prob in topics_probs_dict.items():
-        
-        # update dictionary for mean probability
-        topics_mean_probs_dict[topic] = np.mean(prob)
-        
-        # update dictionary for std dev probability
-        topics_std_probs_dict[topic] = np.std(prob)
-        
-        # update dictionary for topic frequency
-        topics_frequency_dict[topic] =  prob.size    
+    # list is for checking previous words
+    lda_top_topic_words_list = []
 
-    return topics, topics_probs_dict, topics_mean_probs_dict, topics_std_probs_dict, topics_frequency_dict
+    # if generating more than 1 topic
+    if num_topic > 1:
 
+        # if you're okay with topic words repeating (often happens..)
+        if not unique_topic_words:
 
-def sort_topics_mean_frequency(topics,topics_mean_probs_dict,topics_std_probs_dict,topics_frequency_dict):
-    """fxn returns topics sorted by their mean probability and frequency. also returns std dev of prob"""
-    
-    # empty dict for topics
-    x_topics = []
-    
-    # to store mean probs
-    y_means = np.zeros((len(topics_mean_probs_dict)))
-    
-    # to store std dev probs
-    y_std = np.zeros((len(topics_std_probs_dict)))
-    
-    # to store frequency of topic
-    y_frequencies = np.zeros((len(topics_frequency_dict)))
+            for topic in lda_topics:
 
-    # measure mean probs
-    counter = -1
-    for topics, mean_prob in topics_mean_probs_dict.items():
-        counter += 1
-        x_topics.append(topics)
-        y_means[counter] = mean_prob
+                # get the list of topics
+                topic_words = topic[1]
 
-    # measure std dev probs
-    counter2 = -1
-    for topics, frequency in topics_frequency_dict.items():
-        counter2 += 1
-        y_frequencies[counter2] = frequency
+                lda_top_topic_words_string += ' '+topic_words[0][0]
 
-    # measure frequency topic shows up
-    counter3 = -1
-    for topics, std in topics_std_probs_dict.items():
-        counter3 += 1
-        y_std[counter3] = std
+                lda_top_topic_words_list.append(topic_words[0][0])
 
-    # sort by mean and frequency
+        # don't reuse a word if it has already been used
+        else:
 
-    zipped_mean = zip(y_means, x_topics)
-    sorted_zipped_mean = sorted(zipped_mean)
-    y_means_sorted = [element1 for element1,element2 in sorted_zipped_mean]
-    y_means_sorted = y_means_sorted[::-1]
-    x_topics_means = [element2 for element1,element2 in sorted_zipped_mean]
-    x_topics_means = x_topics_means[::-1]
+            # loop through each list of generated topics
+            for topic in lda_topics:
 
-    zipped_mean_std = zip(y_means,y_std)
-    sorted_zipped_mean_std = sorted(zipped_mean_std)
-    y_std_sorted = [element2 for element1,element2 in sorted_zipped_mean_std]
-    y_std_sorted = y_std_sorted[::-1]
+                # set word added to 0
+                word_added = 0
 
-    zipped_freq = zip(y_frequencies,x_topics)
-    sorted_zipped_freq = sorted(zipped_freq)
-    y_freq_sorted = [element1 for (element1,element2) in sorted_zipped_freq]
-    y_freq_sorted = y_freq_sorted[::-1]
-    x_topics_freq = [element2 for element1,element2 in sorted_zipped_freq]
-    x_topics_freq = x_topics_freq[::-1]
-    
-    return x_topics_means, y_means_sorted, y_std_sorted, x_topics_freq, y_freq_sorted
+                # get the list of topics
+                topic_words = topic[1]
+
+                # loop through words in topic
+                # add as search term only if they aren't already search terms
+                for i in range(len(topic_words)):
+
+                    # if the current word in topic is not in list of search terms
+                    if topic_words[i][0] not in lda_top_topic_words_list:
+
+                        # add this word to list of topic/search terms
+                        lda_top_topic_words_list.append(topic_words[i][0])
+
+                        # also update the string for the search terms
+                        lda_top_topic_words_string += ' '+topic_words[i][0]
+
+                        # update word added
+                        word_added = 1
+                        break
+
+                # if no word was added because all supporting words in topic are already
+                # search terms, then just add the highest prob/first word in topic
+                if word_added == 0:
+                    # if every word in this topic is already a search term,
+                    # just add the first most probable word and leave the while loop
+                    lda_top_topic_words_list.append(topic_words[0][0])
+                    lda_top_topic_words_string += ' '+topic_words[0][0]
+
+    else:
+
+        for topic in lda_topics:
+
+            # get the list of topic words
+            topic_words = topic[1]
+
+            # loop through these words and get the top n number
+            counter = -1
+            for topic_word in topic_words:
+
+                counter += 1
+
+                if counter < n_topic_words:
+
+                    lda_top_topic_words_string += ' '+topic_word[0]
+                    lda_top_topic_words_list.append(topic_word[0])
+                    
+    return lda_top_topic_words_string, lda_top_topic_words_list
