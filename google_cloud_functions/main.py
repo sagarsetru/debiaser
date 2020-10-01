@@ -75,11 +75,11 @@ def return_suggested_articles(request):
     combined_article = headline+'. '+article
     
     # if avoiding repeated words (only relevant if num_lda_topics > 1)
-    unique_topic_words = 0
+    do_unique_search_words = 0
     
     # only for use when using one topic; this is number of words from that topic
     # that will be used in search
-    n_topic_words = 5
+    n_search_words = 5
     
     # set the number of topics to generate (5 seems to work pretty well)
     num_lda_topics = 1
@@ -175,7 +175,7 @@ def return_suggested_articles(request):
         # Just take top word in each generated topic
         
     # get top words per topic
-    lda_top_topic_words_string, lda_top_topic_words_list = get_lda_top_topic_words(lda_topics,num_lda_topics,unique_topic_words,n_topic_words)
+    lda_top_topic_words_string, lda_top_topic_words_list = get_lda_top_topic_words(lda_topics,num_lda_topics,do_unique_search_words,n_search_words)
     
         
     # get dictionary of google queries    
@@ -345,7 +345,7 @@ def get_simple_corpus_dictionary_bow(texts):
     
     return processed_corpus, processed_dictionary, bow_corpus
 
-def get_lda_top_topic_words(lda_topics,num_topic,unique_topic_words,n_topic_words):
+def get_lda_top_topic_words(lda_topics,num_topics,do_unique_search_words,n_search_words):
     """
     fxn for algorithm to return the top topic words
     algo varies based on:
@@ -354,15 +354,15 @@ def get_lda_top_topic_words(lda_topics,num_topic,unique_topic_words,n_topic_word
     
                 
     if one topic, just take top word in each generated topic
-    else, if unique_topic_words, get top word in each topic that is unique,
+    else, if do_unique_search_words, get top word in each topic that is unique,
           else, just get top word in each topic even if it isn't unique
     
     parameters
     ----------
     lda_topics - topic output from lda model
     num_topic - how many lda topics were generated
-    unique_topic_words - whether to all repeating words as search terms
-    n_topic_words - how many topic words to use as search terms
+    do_unique_search_words - whether to all repeating words as search terms
+    n_search_words - how many topic words to use as search terms
     
     outputs
     -------
@@ -374,60 +374,9 @@ def get_lda_top_topic_words(lda_topics,num_topic,unique_topic_words,n_topic_word
 
     # list is for checking previous words
     lda_top_topic_words_list = []
-
-    # if generating more than 1 topic
-    if num_topic > 1:
-
-        # if you're okay with topic words repeating (often happens..)
-        if not unique_topic_words:
-
-            for topic in lda_topics:
-
-                # get the list of topics
-                topic_words = topic[1]
-
-                lda_top_topic_words_string += ' '+topic_words[0][0]
-
-                lda_top_topic_words_list.append(topic_words[0][0])
-
-        # don't reuse a word if it has already been used
-        else:
-
-            # loop through each list of generated topics
-            for topic in lda_topics:
-
-                # set word added to 0
-                word_added = 0
-
-                # get the list of topics
-                topic_words = topic[1]
-
-                # loop through words in topic
-                # add as search term only if they aren't already search terms
-                for i in range(len(topic_words)):
-
-                    # if the current word in topic is not in list of search terms
-                    if topic_words[i][0] not in lda_top_topic_words_list:
-
-                        # add this word to list of topic/search terms
-                        lda_top_topic_words_list.append(topic_words[i][0])
-
-                        # also update the string for the search terms
-                        lda_top_topic_words_string += ' '+topic_words[i][0]
-
-                        # update word added
-                        word_added = 1
-                        break
-
-                # if no word was added because all supporting words in topic are already
-                # search terms, then just add the highest prob/first word in topic
-                if word_added == 0:
-                    # if every word in this topic is already a search term,
-                    # just add the first most probable word and leave the while loop
-                    lda_top_topic_words_list.append(topic_words[0][0])
-                    lda_top_topic_words_string += ' '+topic_words[0][0]
-
-    else:
+    
+    # if lda model has only one topic
+    if num_topics == 1:
 
         for topic in lda_topics:
 
@@ -440,9 +389,84 @@ def get_lda_top_topic_words(lda_topics,num_topic,unique_topic_words,n_topic_word
 
                 counter += 1
 
-                if counter < n_topic_words:
+                if counter < n_search_words:
 
                     lda_top_topic_words_string += ' '+topic_word[0]
                     lda_top_topic_words_list.append(topic_word[0])
-                    
+
+    # if lda model has more than one topic
+    elif num_topics > 1:
+            
+        # this ind is to always get list of tuples of (word, prob)
+        fixed_ind1 = 1
+
+        # this ind is to always access the word in the tuple (word, prob)
+        fixed_ind2 = 0
+
+        # if you're okay with topic words repeating (often happens..)
+        if not do_unique_search_words:
+
+            # loop counter
+            counter = 0
+            
+            # index of word within topic
+            ind_use = 0
+            
+            # index of topic
+            topic_use = -1
+            
+            for i in range(n_search_words):
+                counter += 1
+
+                if counter > num_topics:
+                    ind_use += 1
+                    counter = 1
+
+                if topic_use < num_topics-1:
+                    topic_use += 1
+                else:
+                    topic_use = 0
+
+                # access the appropriate topic word
+                word = lda_topics[topic_use][fixed_ind1][ind_use][fixed_ind2]
+
+                lda_top_topic_words_string += ' '+word
+
+                lda_top_topic_words_list.append(word)
+
+        # don't reuse a word if it has already been used
+        else:
+
+            counter = 0
+            ind_use = 0
+            topic_use = -1
+            
+            # do loop over total words across all topics
+            total_topic_words = len(lda_topics)*len(lda_topics[0][fixed_ind1])
+            for i in range(total_topic_words):
+                counter += 1
+
+                if counter > num_topics:
+                    ind_use += 1
+                    counter = 1
+
+                if topic_use < num_topics-1:
+                    topic_use += 1
+                else:
+                    topic_use = 0
+
+                # access the appropriate topic word
+                word = lda_topics[topic_use][fixed_ind1][ind_use][fixed_ind2]
+
+                # only add if it is not currently in the top topic words
+                if word not in lda_top_topic_words_list:
+
+                    lda_top_topic_words_string += ' '+word
+
+                    lda_top_topic_words_list.append(word)
+                
+                # if the length of the topic words list is at the number of descired topics
+                if len(lda_top_topic_words_list) == n_search_words:
+                    break
+
     return lda_top_topic_words_string, lda_top_topic_words_list
