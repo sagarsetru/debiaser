@@ -42,6 +42,8 @@ from bs4 import BeautifulSoup
 
 import time
 
+import pickle
+
 # import urllib3
 # import urllib
 
@@ -61,17 +63,21 @@ def return_suggested_articles2(url):
 
     """    
     
-    use_bucket = 0
+    # use_bucket = 0
     
-    unique_topic_words = 0
+    # if trying to insure unique words
+    do_unique_search_words = 1
+    
+    # if using LDA model pre trained on article corpus
+    use_pre_trained_model = 0
     
     # only for use when using one topic; this is number of words from that topic
     # that will be used in search
-    n_topic_words = 5
+    n_search_words = 5
     
     num_lda_topics = 1
     
-    n_passes = 5
+    n_passes = 10
     
     print_article = 0
     
@@ -131,7 +137,19 @@ def return_suggested_articles2(url):
     # else:
         
     stop_words = pd.read_csv('/Users/sagarsetru/Documents/post PhD positions search/insightDataScience/project/debiaser/stop_words_db/news-stopwords-master/sw1k.csv')
+    
+    bigram_mod_file = '/Users/sagarsetru/Documents/post PhD positions search/insightDataScience/project/debiaser/all_the_news/bigram_mod.pkl'
+    with open(bigram_mod_file, 'rb') as pickle_file:
+        bigram_mod = pickle.load(pickle_file)
         
+    trigram_mod_file = '/Users/sagarsetru/Documents/post PhD positions search/insightDataScience/project/debiaser/all_the_news/trigram_mod.pkl'
+    with open(trigram_mod_file, 'rb') as pickle_file:
+        trigram_mod = pickle.load(pickle_file)
+    
+    quadgram_mod_file = '/Users/sagarsetru/Documents/post PhD positions search/insightDataScience/project/debiaser/all_the_news/quadgram_mod.pkl'
+    with open(quadgram_mod_file, 'rb') as pickle_file:
+        quadgram_mod = pickle.load(pickle_file)
+    
         # use nltk stopwords
         # stop_words = list(stopwords.words('english'))
         
@@ -174,16 +192,25 @@ def return_suggested_articles2(url):
         print(combined_article)
         
     
-    start = time.process_time()
-    model = word2vec.KeyedVectors.load_word2vec_format('/Users/sagarsetru/Documents/post PhD positions search/insightDataScience/project/debiaser/GoogleNews-vectors-negative300.bin.gz',binary=True)
-    print('TIME FOR LOADING WORD2VEC MODEL')
-    print(time.process_time() - start)
+    # start = time.process_time()
+    # model = word2vec.KeyedVectors.load_word2vec_format('/Users/sagarsetru/Documents/post PhD positions search/insightDataScience/project/debiaser/GoogleNews-vectors-negative300.bin.gz',binary=True)
+    # print('TIME FOR LOADING WORD2VEC MODEL')
+    # print(time.process_time() - start)
     
     # process article
     article_processed = process_all_articles(combined_article,nlp)
     
     # remove stopwords
     article_processed = remove_stopwords(article_processed,stop_words)
+    print('AFTER STOPWORDS')
+    print(article_processed)
+    
+    start = time.process_time()
+    article_processed = make_quadgrams(article_processed,bigram_mod,trigram_mod,quadgram_mod)
+    print('TIME FOR NGRAMS')
+    print(time.process_time() - start)
+    print('AFTER NGRAMS')
+    print(article_processed)
     
     # floor for the frequency of words to remove
     # word_frequency_threshold = 1
@@ -197,17 +224,28 @@ def return_suggested_articles2(url):
     print('TIME FOR BOW VECTOR')
     print(time.process_time() - start)
     
-    # generate the LDA model
-    start = time.process_time()
-    lda = LdaModel(corpus = bow_corpus,
-                    num_topics = num_lda_topics,
-                    id2word = processed_dictionary,
-                    passes = n_passes)
-    print('TIME FOR LDA MODEL GENERATION')
-    print(time.process_time() - start)
     
-    # get the topics from the lda model
-    lda_topics = lda.show_topics(formatted = False)
+    if use_pre_trained_model:
+        
+        # load the LDA model file
+        lda_mod_file = '/Users/sagarsetru/Documents/post PhD positions search/insightDataScience/project/debiaser/all_the_news/lda_model_n_topics_30_n_passes_100_n_docs_chunksize_60000.pkl'
+        with open(lda_mod_file, 'rb') as pickle_file:
+            lda = pickle.load(pickle_file)
+            
+        
+        
+    else:
+        # generate the LDA model
+        start = time.process_time()
+        lda = LdaModel(corpus = bow_corpus,
+                        num_topics = num_lda_topics,
+                        id2word = processed_dictionary,
+                        passes = n_passes)
+        print('TIME FOR LDA MODEL GENERATION')
+        print(time.process_time() - start)
+        
+        # get the topics from the lda model
+        lda_topics = lda.show_topics(formatted = False)
     
     
     # ALL INTERESTING BUT DEPRECATED FOR NOW
@@ -215,7 +253,9 @@ def return_suggested_articles2(url):
         # Just take top word in each generated topic
         
     # get top words per topic
-    
+    lda_top_topic_words_string, lda_top_topic_words_list = get_lda_top_topic_words(lda_topics,num_lda_topics,do_unique_search_words,n_search_words)
+
+    '''
     #  # string is for final search string
     lda_top_topic_words = ''
     
@@ -288,7 +328,7 @@ def return_suggested_articles2(url):
                         lda_top_topic_words += ' '+topic_word[0]
     
         
-    
+    '''
     # get list of google queries
     queries = []
     
@@ -299,48 +339,50 @@ def return_suggested_articles2(url):
     # all_sides_names = ['nyt','wsj']
     
     for domain in all_sides_domains:
-        query = 'www.google.com/search?q=site:'+domain+lda_top_topic_words
+        query = 'www.google.com/search?q=site:'+domain+lda_top_topic_words_string
         queries.append(query)
         
         queries_dict[domain] = query
     
-    queries_dict = {}
-    queries_dict = {'abcnews.go.com': 'www.google.com/search?q=site:abcnews.go.com biden debate joe',
-                'aljazeera.com': 'www.google.com/search?q=site:aljazeera.com biden debate joe',
-                'apnews.com': 'www.google.com/search?q=site:apnews.com biden debate joe',
-                'bbc.com': 'www.google.com/search?q=site:bbc.com biden debate joe',
-                'bloomberg.com': 'www.google.com/search?q=site:bloomberg.com biden debate joe',
-                'breitbart.com': 'www.google.com/search?q=site:breitbart.com biden debate joe',
-                'buzzfeednews.com': 'www.google.com/search?q=site:buzzfeednews.com biden debate joe',
-                'cbn.com': 'www.google.com/search?q=site:cbn.com biden debate joe',
-                'cbsnews.com': 'www.google.com/search?q=site:cbsnews.com biden debate joe',
-                'csmonitor.com': 'www.google.com/search?q=site:csmonitor.com biden debate joe',
-                'cnn.com': 'www.google.com/search?q=site:cnn.com biden debate joe',
-                'thedailybeast.com': 'www.google.com/search?q=site:thedailybeast.com biden debate joe',
-                'democracynow.org': 'www.google.com/search?q=site:democracynow.org biden debate joe',
-                'factcheck.org': 'www.google.com/search?q=site:factcheck.org biden debate joe',
-                'forbes.com': 'www.google.com/search?q=site:forbes.com biden debate joe',
-                'foxnews.com': 'www.google.com/search?q=site:foxnews.com biden debate joe',
-                'huffpost.com': 'www.google.com/search?q=site:huffpost.com biden debate joe',
-                'motherjones.com': 'www.google.com/search?q=site:motherjones.com biden debate joe',
-                'msnbc.com': 'www.google.com/search?q=site:msnbc.com biden debate joe',
-                'nationalreview.com': 'www.google.com/search?q=site:nationalreview.com biden debate joe',
-                'nbcnews.com': 'www.google.com/search?q=site:nbcnews.com biden debate joe',
-                'nypost.com': 'www.google.com/search?q=site:nypost.com biden debate joe',
-                'nytimes.com': 'www.google.com/search?q=site:nytimes.com biden debate joe',
-                'newsmax.com': 'www.google.com/search?q=site:newsmax.com biden debate joe',
-                'npr.org': 'www.google.com/search?q=site:npr.org biden debate joe',
-                'politico.com': 'www.google.com/search?q=site:politico.com biden debate joe',
-                'reason.com': 'www.google.com/search?q=site:reason.com biden debate joe',
-                'reuters.com': 'www.google.com/search?q=site:reuters.com biden debate joe',
-                'salon.com': 'www.google.com/search?q=site:salon.com biden debate joe',
-                'spectator.org': 'www.google.com/search?q=site:spectator.org biden debate joe',
-                'theatlantic.com': 'www.google.com/search?q=site:theatlantic.com biden debate joe',
-                'theguardian.com': 'www.google.com/search?q=site:theguardian.com biden debate joe',
-                'thehill.com': 'www.google.com/search?q=site:thehill.com biden debate joe',
-                'wsj.com': 'www.google.com/search?q=site:wsj.com biden debate joe'}
+    # queries_dict = {}
+    # queries_dict = {'abcnews.go.com': 'www.google.com/search?q=site:abcnews.go.com biden debate joe',
+    #             'aljazeera.com': 'www.google.com/search?q=site:aljazeera.com biden debate joe',
+    #             'apnews.com': 'www.google.com/search?q=site:apnews.com biden debate joe',
+    #             'bbc.com': 'www.google.com/search?q=site:bbc.com biden debate joe',
+    #             'bloomberg.com': 'www.google.com/search?q=site:bloomberg.com biden debate joe',
+    #             'breitbart.com': 'www.google.com/search?q=site:breitbart.com biden debate joe',
+    #             'buzzfeednews.com': 'www.google.com/search?q=site:buzzfeednews.com biden debate joe',
+    #             'cbn.com': 'www.google.com/search?q=site:cbn.com biden debate joe',
+    #             'cbsnews.com': 'www.google.com/search?q=site:cbsnews.com biden debate joe',
+    #             'csmonitor.com': 'www.google.com/search?q=site:csmonitor.com biden debate joe',
+    #             'cnn.com': 'www.google.com/search?q=site:cnn.com biden debate joe',
+    #             'thedailybeast.com': 'www.google.com/search?q=site:thedailybeast.com biden debate joe',
+    #             'democracynow.org': 'www.google.com/search?q=site:democracynow.org biden debate joe',
+    #             'factcheck.org': 'www.google.com/search?q=site:factcheck.org biden debate joe',
+    #             'forbes.com': 'www.google.com/search?q=site:forbes.com biden debate joe',
+    #             'foxnews.com': 'www.google.com/search?q=site:foxnews.com biden debate joe',
+    #             'huffpost.com': 'www.google.com/search?q=site:huffpost.com biden debate joe',
+    #             'motherjones.com': 'www.google.com/search?q=site:motherjones.com biden debate joe',
+    #             'msnbc.com': 'www.google.com/search?q=site:msnbc.com biden debate joe',
+    #             'nationalreview.com': 'www.google.com/search?q=site:nationalreview.com biden debate joe',
+    #             'nbcnews.com': 'www.google.com/search?q=site:nbcnews.com biden debate joe',
+    #             'nypost.com': 'www.google.com/search?q=site:nypost.com biden debate joe',
+    #             'nytimes.com': 'www.google.com/search?q=site:nytimes.com biden debate joe',
+    #             'newsmax.com': 'www.google.com/search?q=site:newsmax.com biden debate joe',
+    #             'npr.org': 'www.google.com/search?q=site:npr.org biden debate joe',
+    #             'politico.com': 'www.google.com/search?q=site:politico.com biden debate joe',
+    #             'reason.com': 'www.google.com/search?q=site:reason.com biden debate joe',
+    #             'reuters.com': 'www.google.com/search?q=site:reuters.com biden debate joe',
+    #             'salon.com': 'www.google.com/search?q=site:salon.com biden debate joe',
+    #             'spectator.org': 'www.google.com/search?q=site:spectator.org biden debate joe',
+    #             'theatlantic.com': 'www.google.com/search?q=site:theatlantic.com biden debate joe',
+    #             'theguardian.com': 'www.google.com/search?q=site:theguardian.com biden debate joe',
+    #             'thehill.com': 'www.google.com/search?q=site:thehill.com biden debate joe',
+    #             'wsj.com': 'www.google.com/search?q=site:wsj.com biden debate joe'}
         
-    return json.dumps(queries_dict)
+    # print(len(queries))
+    # return json.dumps(queries_dict)
+    return lda_topics,queries
 
 
 def download_from_bucket(bucket_name,source_data_name,destination_file_name):
@@ -484,7 +526,15 @@ def remove_stopwords(documents, stop_words):
         
     return documents_processed
     
-    
+def make_bigrams(texts,bigram_mod):
+    return [bigram_mod[doc] for doc in texts]
+
+def make_trigrams(texts,bigram_mod,trigram_mod):
+    return [trigram_mod[bigram_mod[doc]] for doc in texts]
+
+def make_quadgrams(texts,bigram_mod,trigram_mod,quadgram_mod):
+    return [quadgram_mod[trigram_mod[bigram_mod[doc]]] for doc in texts]
+
 def get_simple_corpus_dictionary_bow(texts):
     """fxn returns corpus, processed dict, bag of words"""
     
@@ -633,18 +683,149 @@ def sort_topics_mean_frequency(topics,topics_mean_probs_dict,topics_std_probs_di
     
     return x_topics_means, y_means_sorted, y_std_sorted, x_topics_freq, y_freq_sorted
 
+
+def get_lda_top_topic_words(lda_topics,num_topics,do_unique_search_words,n_search_words):
+    """
+    fxn for algorithm to return the top topic words
+    algo varies based on:
+    1) whether only unique words are wanted, and
+    2) whether there is 1 or more topics
+    
+                
+    if one topic, just take top word in each generated topic
+    else, if do_unique_search_words, get top word in each topic that is unique,
+          else, just get top word in each topic even if it isn't unique
+    
+    parameters
+    ----------
+    lda_topics - topic output from lda model
+    num_topic - how many lda topics were generated
+    do_unique_search_words - whether to all repeating words as search terms
+    n_search_words - how many topic words to use as search terms
+    
+    outputs
+    -------
+    list and string of search/topic words
+    """
+    
+    # string is for final search string
+    lda_top_topic_words_string = ''
+
+    # list is for checking previous words
+    lda_top_topic_words_list = []
+    
+    # if lda model has only one topic
+    if num_topics == 1:
+
+        for topic in lda_topics:
+
+            # get the list of topic words
+            topic_words = topic[1]
+
+            # loop through these words and get the top n number
+            counter = -1
+            for topic_word in topic_words:
+
+                counter += 1
+
+                if counter < n_search_words:
+
+                    lda_top_topic_words_string += ' '+topic_word[0]
+                    lda_top_topic_words_list.append(topic_word[0])
+
+    # if lda model has more than one topic
+    elif num_topics > 1:
+            
+        # this ind is to always get list of tuples of (word, prob)
+        fixed_ind1 = 1
+
+        # this ind is to always access the word in the tuple (word, prob)
+        fixed_ind2 = 0
+
+        # if you're okay with topic words repeating (often happens..)
+        if not do_unique_search_words:
+
+            # loop counter
+            counter = 0
+            
+            # index of word within topic
+            ind_use = 0
+            
+            # index of topic
+            topic_use = -1
+            
+            for i in range(n_search_words):
+                counter += 1
+
+                if counter > num_topics:
+                    ind_use += 1
+                    counter = 1
+
+                if topic_use < num_topics-1:
+                    topic_use += 1
+                else:
+                    topic_use = 0
+
+                # access the appropriate topic word
+                word = lda_topics[topic_use][fixed_ind1][ind_use][fixed_ind2]
+
+                lda_top_topic_words_string += ' '+word
+
+                lda_top_topic_words_list.append(word)
+
+        # don't reuse a word if it has already been used
+        else:
+
+            counter = 0
+            ind_use = 0
+            topic_use = -1
+            
+            # do loop over total words across all topics
+            total_topic_words = len(lda_topics)*len(lda_topics[0][fixed_ind1])
+            for i in range(total_topic_words):
+                counter += 1
+
+                if counter > num_topics:
+                    ind_use += 1
+                    counter = 1
+
+                if topic_use < num_topics-1:
+                    topic_use += 1
+                else:
+                    topic_use = 0
+
+                # access the appropriate topic word
+                word = lda_topics[topic_use][fixed_ind1][ind_use][fixed_ind2]
+
+                # only add if it is not currently in the top topic words
+                if word not in lda_top_topic_words_list:
+
+                    lda_top_topic_words_string += ' '+word
+
+                    lda_top_topic_words_list.append(word)
+                
+                # if the length of the topic words list is at the number of descired topics
+                if len(lda_top_topic_words_list) == n_search_words:
+                    break
+
+    return lda_top_topic_words_string, lda_top_topic_words_list
+
+
+
+
 url = 'https://www.theguardian.com/sport/2020/sep/25/la-lakers-denver-nuggets-game-4-recap'
-url = 'https://www.nytimes.com/2020/09/25/us/politics/rbg-retirement-obama.html'
+# url = 'https://www.nytimes.com/2020/09/25/us/politics/rbg-retirement-obama.html'
 # url = 'https://www.nytimes.com/2020/09/27/us/politics/trump-biden-debate-expectations.html?action=click&module=Top%20Stories&pgtype=Homepage'
 
-queries = return_suggested_articles2(url)
+lda_topics, queries = return_suggested_articles2(url)
 
+print(queries)
+print(lda_topics)
 
-
-for domain in queries.keys():
-    domain_name = domain.split('.')[0]
+# for domain in queries.keys():
+#     domain_name = domain.split('.')[0]
     
-    print(f"let {domain_name} = articles_json['{domain}']")
+#     print(f"let {domain_name} = articles_json['{domain}']")
 
 # st.write(queries)
 
