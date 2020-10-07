@@ -74,12 +74,16 @@ def return_suggested_articles(request):
     # make into one text file
     combined_article = headline+'. '+article
     
-    # if avoiding repeated words (only relevant if num_lda_topics > 1)
-    do_unique_search_words = 0
     
-    # only for use when using one topic; this is number of words from that topic
-    # that will be used in search
+    # set to 1 for single doc lda, 0 for tfidf
+    do_single_document_LDA = 0
+    
+    # number of query words to return
     n_search_words = 5
+    
+    
+    
+    ### SINGLE DOC LDA PARAMS
     
     # set the number of topics to generate (5 seems to work pretty well)
     num_lda_topics = 1
@@ -87,11 +91,15 @@ def return_suggested_articles(request):
     # set the number of passes
     n_passes = 10
     
+    # if avoiding repeated words (only relevant if num_lda_topics > 1)
+    do_unique_search_words = 0
+    
+    
+    
     print('Downloading stop words')
     # download stopwords list
     # if use_bucket:
     download_blob('debiaser_data', 'sw1k.csv', '/tmp/sw1k.csv')
-    
     
     # load stop words into pandas and then into list
     stop_words = pd.read_csv('/tmp/sw1k.csv')
@@ -112,7 +120,7 @@ def return_suggested_articles(request):
     stop_words.append('dr')
     stop_words.append('ads')
     stop_words.append('cookies')
-    # stop_words.append('factset')
+    stop_words.append('factset')
     
     print('Downloading news organizations from AllSidesMedia')
     # download all_sides_media list
@@ -133,10 +141,17 @@ def return_suggested_articles(request):
     # get dictionary of entities in article
     # entity_dict = entity_recognizer(combined_article,nlp)
     
-    print('splitting article into sentences')
-    # break up into sentences
-    combined_article = tokenize.sent_tokenize(combined_article)
-    
+    if do_single_document_LDA:
+        
+        print('splitting article into sentences')
+        # break up into sentences
+        combined_article = tokenize.sent_tokenize(combined_article)
+        
+    else:
+        
+        # make into one element list for downstream processing
+        combined_article = [combined_article]
+        
     print('pre processing article text')
     # process article
     article_processed = process_all_articles(combined_article,nlp)
@@ -144,6 +159,7 @@ def return_suggested_articles(request):
     print('removing stopwords')
     # remove stopwords
     article_processed = remove_stopwords(article_processed,stop_words)
+        
     
     # floor for the frequency of words to remove
     # word_frequency_threshold = 1
@@ -152,41 +168,124 @@ def return_suggested_articles(request):
     # processed_corpus, processed_dictionary, bow_corpus = get_simple_corpus_dictionary_bow(article_processed,
     #                                                                                       word_frequency_threshold)
     
-    print('generating dictionary and bag of words vector...')
-    start = time.process_time()
-    processed_corpus, processed_dictionary, bow_corpus = get_simple_corpus_dictionary_bow(article_processed)
-    print('TIME FOR GENERATING DICTIONARY AND BOW VECTOR')
-    print(time.process_time() - start)
-    
-    print('generating lda model...')
-    start = time.process_time()
-    # generate the LDA model
-    lda = LdaModel(corpus = bow_corpus,
-                    num_topics = num_lda_topics,
-                    id2word = processed_dictionary,
-                    passes = n_passes)
-    print('TIME FOR GENERATING LDA MODEL')
-    print(time.process_time() - start)
-    
-    
-    # get the topics from the lda model
-    lda_topics = lda.show_topics(formatted = False)
-    
-    
-    # ALL INTERESTING BUT DEPRECATED FOR NOW
-    # WILL FOLLOW SIMPLER APPROACH:
-        # Just take top word in each generated topic
+    if do_single_document_LDA:
+        print('generating dictionary and bag of words vector...')
+        start = time.process_time()
+        processed_corpus, processed_dictionary, bow_corpus = get_simple_corpus_dictionary_bow(article_processed)
+        print('TIME FOR GENERATING DICTIONARY AND BOW VECTOR')
+        print(time.process_time() - start)
         
-    # get top words per topic
-    lda_top_topic_words_string, lda_top_topic_words_list = get_lda_top_topic_words(lda_topics,num_lda_topics,do_unique_search_words,n_search_words)
-    
+        print('generating lda model...')
+        start = time.process_time()
+        # generate the LDA model
+        lda = LdaModel(corpus = bow_corpus,
+                        num_topics = num_lda_topics,
+                        id2word = processed_dictionary,
+                        passes = n_passes)
+        print('TIME FOR GENERATING LDA MODEL')
+        print(time.process_time() - start)
         
+        
+        # get the topics from the lda model
+        lda_topics = lda.show_topics(formatted = False)
+            
+            
+            # ALL INTERESTING BUT DEPRECATED FOR NOW
+            # WILL FOLLOW SIMPLER APPROACH:
+                # Just take top word in each generated topic
+                
+            # get top words per topic
+            lda_top_topic_words_string, lda_top_topic_words_list = get_lda_top_topic_words(lda_topics,num_lda_topics,do_unique_search_words,n_search_words)
+        
+    # doing tfidf
+    else:
+        
+        # specify file name
+        tfidf_matrix_filename = '/tmp/tfidf_matrix.pkl'
+        
+        # download the tfidf matrix
+        print('DOWNLOADING TFIDF MODEL')
+        download_blob('debiaser_data','tfidf_matrix.pkl', tfidf_matrix_filename)
+        
+        with open(tfidf_matrix_filename, 'rb') as pickle_file:
+            tfidf = pickle.load(pickle_file)
+        
+        # remove from memory
+        os.remove(tfidf_matrix_filename)
+        
+        # load bigram trigram quadgram models
+        bigram_mod_fname = '/tmp/bigram_mod.pkl'
+        trigram_mod_fname = '/tmp/trigram_mod.pkl'
+        quadgram_mod_fname = '/tmp/quadgram_mod.pkl'
+        
+        download_blob('debiaser_data','bigram_mod.pkl',bigram_mod_fname)
+        download_blob('debiaser_data','trigram_mod.pkl',trigram_mod_fname)
+        download_blob('debiaser_data','quadgram_mod.pkl',quadgram_mod_fname)
+        
+        with open(bigram_mod_fname, 'rb') as pickle_file:
+            bigram_mod = pickle.load(pickle_file)
+            
+        with open(trigram_mod_fname, 'rb') as pickle_file:
+            trigram_mod = pickle.load(pickle_file)
+            
+        with open(quadgram_mod_fname, 'rb') as pickle_file:
+            quadgram_mod = pickle.load(pickle_file)
+        
+        # make up to quad grams
+        combined_article = make_quadgrams(combined_article,bigram_mod,trigram_mod,quadgram_mod)
+        
+        # remove to free memory
+        os.remove(bigram_mod_fname)
+        os.remove(trigram_mod_fname)
+        os.remove(quadgram_mod_fname)
+            
+        # download dictionary
+        id2word_fname = '/tmp/id2word.pkl'
+        download_blob('debiaser_data','id2word_ec2.pkl',id2word_fname)
+        
+        with open(id2word_fname, 'rb') as pickle_file:
+            processed_dictionary = pickle.load(pickle_file)
+        
+        # remove to free memory
+        os.remove(id2word_fname)
+        
+        print('GENERATING BOW VECTOR FOR ARTICLE')
+        # get bag of words representation
+        bow_corpus_article = [processed_dictionary.doc2bow(text) for text in combined_article]
+        
+        print('GETTING TF IDF SCORE')
+        tfidf_vector = tfidf[bow_corpus_article[0]]
+    
+        # sort the tfidf vector
+        tfidf_vector = sorted(tfidf_vector,key=getKey,reverse=True)
+        
+        # if there are fewer words than search words, then just use how many words there are
+        if len(tfidf_vector) < n_search_words:
+            n_search_words = len(tfidf_vector)
+        
+        top_tfidf_values = [tfidf_vector[i][0] for i in range(0,n_search_words)]
+        print(top_tfidf_values)
+        
+        top_words_list = [processed_dictionary[i].replace("_"," ") for i in top_tfidf_values]
+        
+        top_words_string = ' '
+        for word in top_words_list:
+            if word not in top_words_string:
+                top_words_string += ' '+word
+        
+    
     # get dictionary of google queries    
     queries_dict = {}
     
-    
     for domain in all_sides_domains:
-        query = 'www.news.google.com/search?q=site:'+domain+lda_top_topic_words_string
+        
+        # if this is single document lda
+        if do_single_document_LDA:
+            query = 'www.news.google.com/search?q=site:'+domain+lda_top_topic_words_string
+        
+        # if this is tfidf
+        else:
+            query = 'www.news.google.com/search?q=site:'+domain+top_words_string
         
         queries_dict[domain] = query
         
@@ -324,6 +423,19 @@ def remove_stopwords(documents, stop_words):
         documents_processed.append(document_processed)
         
     return documents_processed
+
+
+def make_bigrams(texts,bigram_mod):
+    '''fxn identifies bigrams in text'''
+    return [bigram_mod[doc] for doc in texts]
+
+def make_trigrams(texts,bigram_mod,trigram_mod):
+    '''fxn identifies trigrams in text'''
+    return [trigram_mod[bigram_mod[doc]] for doc in texts]
+
+def make_quadgrams(texts,bigram_mod,trigram_mod,quadgram_mod):
+    '''fxn identifies quadrigrams in text'''
+    return [quadgram_mod[trigram_mod[bigram_mod[doc]]] for doc in texts]
     
     
 def get_simple_corpus_dictionary_bow(texts):
@@ -473,3 +585,6 @@ def get_lda_top_topic_words(lda_topics,num_topics,do_unique_search_words,n_searc
                     break
 
     return lda_top_topic_words_string, lda_top_topic_words_list
+
+def getKey(item):
+    return item[1]
