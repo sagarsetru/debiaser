@@ -85,7 +85,7 @@ def return_suggested_articles(request):
     num_lda_topics = 1
     
     # set the number of passes
-    n_passes = 6
+    n_passes = 10
     
     print('Downloading stop words')
     # download stopwords list
@@ -109,6 +109,9 @@ def return_suggested_articles(request):
     stop_words.append('inc')
     stop_words.append('cov')
     stop_words.append('jr')
+    stop_words.append('dr')
+    stop_words.append('ads')
+    stop_words.append('cookies')
     # stop_words.append('factset')
     
     print('Downloading news organizations from AllSidesMedia')
