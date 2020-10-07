@@ -49,7 +49,7 @@ import pickle
 
 # import streamlit as st
 
-def return_suggested_articles2(url):
+def return_suggested_articles2(url,do_unique_search_words=1,use_pre_trained_model=0,do_ngrams=0,do_sentences=1,n_search_words=5,num_lda_topics=1,n_passes=10,print_article=0):
     """
     returns suggested articles based on topic of one currently being viewed
 
@@ -66,20 +66,22 @@ def return_suggested_articles2(url):
     # use_bucket = 0
     
     # if trying to insure unique words
-    do_unique_search_words = 1
+    # do_unique_search_words = 1
     
-    # if using LDA model pre trained on article corpus
-    use_pre_trained_model = 0
+    # # if using LDA model pre trained on article corpus
+    # use_pre_trained_model = 0
     
-    # only for use when using one topic; this is number of words from that topic
-    # that will be used in search
-    n_search_words = 5
+    # do_sentences = 0
     
-    num_lda_topics = 1
+    # # only for use when using one topic; this is number of words from that topic
+    # # that will be used in search
+    # n_search_words = 5
     
-    n_passes = 10
+    # num_lda_topics = 1
     
-    print_article = 0
+    # n_passes = 10
+    
+    # print_article = 0
     
     # get html content of url
     page = requests.get(url)
@@ -138,17 +140,18 @@ def return_suggested_articles2(url):
         
     stop_words = pd.read_csv('/Users/sagarsetru/Documents/post PhD positions search/insightDataScience/project/debiaser/stop_words_db/news-stopwords-master/sw1k.csv')
     
-    bigram_mod_file = '/Users/sagarsetru/Documents/post PhD positions search/insightDataScience/project/debiaser/all_the_news/bigram_mod.pkl'
-    with open(bigram_mod_file, 'rb') as pickle_file:
-        bigram_mod = pickle.load(pickle_file)
+    if do_ngrams:
+        bigram_mod_file = '/Users/sagarsetru/Documents/post PhD positions search/insightDataScience/project/debiaser/all_the_news/bigram_mod.pkl'
+        with open(bigram_mod_file, 'rb') as pickle_file:
+            bigram_mod = pickle.load(pickle_file)
+            
+        trigram_mod_file = '/Users/sagarsetru/Documents/post PhD positions search/insightDataScience/project/debiaser/all_the_news/trigram_mod.pkl'
+        with open(trigram_mod_file, 'rb') as pickle_file:
+            trigram_mod = pickle.load(pickle_file)
         
-    trigram_mod_file = '/Users/sagarsetru/Documents/post PhD positions search/insightDataScience/project/debiaser/all_the_news/trigram_mod.pkl'
-    with open(trigram_mod_file, 'rb') as pickle_file:
-        trigram_mod = pickle.load(pickle_file)
-    
-    quadgram_mod_file = '/Users/sagarsetru/Documents/post PhD positions search/insightDataScience/project/debiaser/all_the_news/quadgram_mod.pkl'
-    with open(quadgram_mod_file, 'rb') as pickle_file:
-        quadgram_mod = pickle.load(pickle_file)
+        quadgram_mod_file = '/Users/sagarsetru/Documents/post PhD positions search/insightDataScience/project/debiaser/all_the_news/quadgram_mod.pkl'
+        with open(quadgram_mod_file, 'rb') as pickle_file:
+            quadgram_mod = pickle.load(pickle_file)
     
         # use nltk stopwords
         # stop_words = list(stopwords.words('english'))
@@ -184,19 +187,22 @@ def return_suggested_articles2(url):
     # get dictionary of entities in article
     # entity_dict = entity_recognizer(combined_article,nlp)
     
+    
     # break up into sentences
-    combined_article = tokenize.sent_tokenize(combined_article)
+    if do_sentences:
+        combined_article = tokenize.sent_tokenize(combined_article)
+    else:
+        combined_article = [combined_article]
     
     if print_article:
         print('TOKENIZED TO SENTENCES')
         print(combined_article)
         
-    
     # start = time.process_time()
     # model = word2vec.KeyedVectors.load_word2vec_format('/Users/sagarsetru/Documents/post PhD positions search/insightDataScience/project/debiaser/GoogleNews-vectors-negative300.bin.gz',binary=True)
     # print('TIME FOR LOADING WORD2VEC MODEL')
     # print(time.process_time() - start)
-    
+    # print(combined_article)
     # process article
     article_processed = process_all_articles(combined_article,nlp)
     
@@ -205,12 +211,16 @@ def return_suggested_articles2(url):
     print('AFTER STOPWORDS')
     print(article_processed)
     
-    start = time.process_time()
-    article_processed = make_quadgrams(article_processed,bigram_mod,trigram_mod,quadgram_mod)
-    print('TIME FOR NGRAMS')
-    print(time.process_time() - start)
-    print('AFTER NGRAMS')
-    print(article_processed)
+    
+    if do_ngrams:
+        
+        start = time.process_time()
+        article_processed = make_quadgrams(article_processed,bigram_mod,trigram_mod,quadgram_mod)
+        print('TIME FOR NGRAMS')
+        print(time.process_time() - start)
+        print('AFTER NGRAMS')
+    
+    # print(article_processed)
     
     # floor for the frequency of words to remove
     # word_frequency_threshold = 1
@@ -220,19 +230,42 @@ def return_suggested_articles2(url):
     #                                                                                       word_frequency_threshold)
     
     start = time.process_time()
-    processed_corpus, processed_dictionary, bow_corpus = get_simple_corpus_dictionary_bow(article_processed)
+    
+    if use_pre_trained_model:
+        
+        # load dictionary used to train model on EC2
+        id2word_file = '/Users/sagarsetru/Documents/post PhD positions search/insightDataScience/project/debiaser/all_the_news/id2word.pkl'
+        with open(id2word_file, 'rb') as pickle_file:
+            processed_dictionary = pickle.load(pickle_file)
+
+        
+        # get terms in article
+        processed_corpus = [[token for token in text] for text in article_processed]
+        
+        # generate bag of words of the corpus
+        bow_corpus = [processed_dictionary.doc2bow(text) for text in processed_corpus]
+            
+    else:
+        
+        processed_corpus, processed_dictionary, bow_corpus = get_simple_corpus_dictionary_bow(article_processed)
+    
     print('TIME FOR BOW VECTOR')
     print(time.process_time() - start)
     
     
+    # for bow in bow_corpus:
+    #     print(bow)
+    #     print(' ')
+        
     if use_pre_trained_model:
         
+        print('USING PRE TRAINED LDA MODEL')
         # load the LDA model file
-        lda_mod_file = '/Users/sagarsetru/Documents/post PhD positions search/insightDataScience/project/debiaser/all_the_news/lda_model_n_topics_30_n_passes_100_n_docs_chunksize_60000.pkl'
+        lda_mod_file = '/Users/sagarsetru/Documents/post PhD positions search/insightDataScience/project/debiaser/all_the_news/lda_model_n_topics_50_n_passes_100_n_docs_chunksize_60000.pkl'
         with open(lda_mod_file, 'rb') as pickle_file:
             lda = pickle.load(pickle_file)
             
-        
+        lda_topics = lda[bow_corpus]
         
     else:
         # generate the LDA model
@@ -253,7 +286,7 @@ def return_suggested_articles2(url):
         # Just take top word in each generated topic
         
     # get top words per topic
-    lda_top_topic_words_string, lda_top_topic_words_list = get_lda_top_topic_words(lda_topics,num_lda_topics,do_unique_search_words,n_search_words)
+    # lda_top_topic_words_string, lda_top_topic_words_list = get_lda_top_topic_words(lda_topics,num_lda_topics,do_unique_search_words,n_search_words)
 
     '''
     #  # string is for final search string
@@ -330,19 +363,19 @@ def return_suggested_articles2(url):
         
     '''
     # get list of google queries
-    queries = []
+    # queries = []
     
-    queries_dict = {}
+    # queries_dict = {}
     
-    # quick manual entry
-    # all_sides_domains = ['nytimes.com','wsj.com']
-    # all_sides_names = ['nyt','wsj']
+    # # quick manual entry
+    # # all_sides_domains = ['nytimes.com','wsj.com']
+    # # all_sides_names = ['nyt','wsj']
     
-    for domain in all_sides_domains:
-        query = 'www.google.com/search?q=site:'+domain+lda_top_topic_words_string
-        queries.append(query)
+    # for domain in all_sides_domains:
+    #     query = 'www.google.com/search?q=site:'+domain+lda_top_topic_words_string
+    #     queries.append(query)
         
-        queries_dict[domain] = query
+    #     queries_dict[domain] = query
     
     # queries_dict = {}
     # queries_dict = {'abcnews.go.com': 'www.google.com/search?q=site:abcnews.go.com biden debate joe',
@@ -382,7 +415,7 @@ def return_suggested_articles2(url):
         
     # print(len(queries))
     # return json.dumps(queries_dict)
-    return lda_topics,queries
+    return lda_topics, processed_dictionary, lda, bow_corpus
 
 
 def download_from_bucket(bucket_name,source_data_name,destination_file_name):
@@ -813,14 +846,40 @@ def get_lda_top_topic_words(lda_topics,num_topics,do_unique_search_words,n_searc
 
 
 
-url = 'https://www.theguardian.com/sport/2020/sep/25/la-lakers-denver-nuggets-game-4-recap'
-# url = 'https://www.nytimes.com/2020/09/25/us/politics/rbg-retirement-obama.html'
-# url = 'https://www.nytimes.com/2020/09/27/us/politics/trump-biden-debate-expectations.html?action=click&module=Top%20Stories&pgtype=Homepage'
+# url = 'https://www.theguardian.com/sport/2020/sep/25/la-lakers-denver-nuggets-game-4-recap'
+# # url = 'https://www.nytimes.com/2020/09/25/us/politics/rbg-retirement-obama.html'
+# # url = 'https://www.nytimes.com/2020/09/27/us/politics/trump-biden-debate-expectations.html?action=click&module=Top%20Stories&pgtype=Homepage'
 
-lda_topics, queries = return_suggested_articles2(url)
+# # lda_topics, queries = return_suggested_articles2(url)
+# lda_topics,processed_dictionary,lda,bow_corpus = return_suggested_articles2(url)
 
-print(queries)
-print(lda_topics)
+# # print(queries)
+# print(lda_topics)
+# #%%
+# # lda_topics_with_words = []
+# # for topic in lda_topics:
+# #     print(topic)
+    
+# #     for word in topic:
+# #         print(word[0])
+# #         print(processed_dictionary[word[0]])
+# #         lda_topics_with_words.append((processed_dictionary[word[0]],word[1]))
+
+# lda_topics_with_words2 = []
+
+# for topics in lda_topics[len(lda_topics)-1]:
+#     support = topics[1]
+    
+#     for word in support:
+#         lda_topics_with_words2.append((processed_dictionary[word[0]],word[1]))
+        
+        
+# lda_topics_with_words3 = []
+
+# for word in lda_topics[0]:
+#     print(word)
+#     lda_topics_with_words3.append((processed_dictionary[word[0]],word[1]))
+    
 
 # for domain in queries.keys():
 #     domain_name = domain.split('.')[0]
