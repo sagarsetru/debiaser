@@ -26,6 +26,8 @@ from nltk import tokenize
 # )
 from nltk import download as nldl
 nldl('punkt')
+
+import pickle
 # os.environ['NLTK_DATA'] = nltk_data
 
 # from nltk.corpus import stopwords
@@ -81,7 +83,7 @@ def return_suggested_articles(request):
     # number of query words to return
     n_search_words = 5
     
-    
+    do_ngrams = 0
     
     ### SINGLE DOC LDA PARAMS
     
@@ -169,6 +171,21 @@ def return_suggested_articles(request):
     #                                                                                       word_frequency_threshold)
     
     if do_single_document_LDA:
+        
+        # if do_ngrams:
+        #     # load bigram trigram quadgram models
+        #     bigram_mod_fname = '/tmp/bigram_mod.pkl'
+            
+        #     download_blob('debiaser_data','bigram_mod.pkl',bigram_mod_fname)
+            
+        #     with open(bigram_mod_fname, 'rb') as pickle_file:
+        #         bigram_mod = pickle.load(pickle_file)
+                
+        #     article_processed = make_bigrams(article_processed,bigram_mod)
+            
+        #     os.remove(bigram_mod_fname)
+            
+        
         print('generating dictionary and bag of words vector...')
         start = time.process_time()
         processed_corpus, processed_dictionary, bow_corpus = get_simple_corpus_dictionary_bow(article_processed)
@@ -190,12 +207,12 @@ def return_suggested_articles(request):
         lda_topics = lda.show_topics(formatted = False)
             
             
-            # ALL INTERESTING BUT DEPRECATED FOR NOW
-            # WILL FOLLOW SIMPLER APPROACH:
-                # Just take top word in each generated topic
-                
-            # get top words per topic
-            lda_top_topic_words_string, lda_top_topic_words_list = get_lda_top_topic_words(lda_topics,num_lda_topics,do_unique_search_words,n_search_words)
+        # ALL INTERESTING BUT DEPRECATED FOR NOW
+        # WILL FOLLOW SIMPLER APPROACH:
+            # Just take top word in each generated topic
+            
+        # get top words per topic
+        lda_top_topic_words_string, lda_top_topic_words_list = get_lda_top_topic_words(lda_topics,num_lda_topics,do_unique_search_words,n_search_words)
         
     # doing tfidf
     else:
@@ -213,31 +230,32 @@ def return_suggested_articles(request):
         # remove from memory
         os.remove(tfidf_matrix_filename)
         
-        # load bigram trigram quadgram models
-        bigram_mod_fname = '/tmp/bigram_mod.pkl'
-        trigram_mod_fname = '/tmp/trigram_mod.pkl'
-        quadgram_mod_fname = '/tmp/quadgram_mod.pkl'
-        
-        download_blob('debiaser_data','bigram_mod.pkl',bigram_mod_fname)
-        download_blob('debiaser_data','trigram_mod.pkl',trigram_mod_fname)
-        download_blob('debiaser_data','quadgram_mod.pkl',quadgram_mod_fname)
-        
-        with open(bigram_mod_fname, 'rb') as pickle_file:
-            bigram_mod = pickle.load(pickle_file)
+        # if do_ngrams:
+        #     # load bigram trigram quadgram models
+        #     bigram_mod_fname = '/tmp/bigram_mod.pkl'
+        #     trigram_mod_fname = '/tmp/trigram_mod.pkl'
+        #     quadgram_mod_fname = '/tmp/quadgram_mod.pkl'
             
-        with open(trigram_mod_fname, 'rb') as pickle_file:
-            trigram_mod = pickle.load(pickle_file)
+        #     download_blob('debiaser_data','bigram_mod.pkl',bigram_mod_fname)
+        #     download_blob('debiaser_data','trigram_mod.pkl',trigram_mod_fname)
+        #     download_blob('debiaser_data','quadgram_mod.pkl',quadgram_mod_fname)
             
-        with open(quadgram_mod_fname, 'rb') as pickle_file:
-            quadgram_mod = pickle.load(pickle_file)
-        
-        # make up to quad grams
-        combined_article = make_quadgrams(combined_article,bigram_mod,trigram_mod,quadgram_mod)
+        #     with open(bigram_mod_fname, 'rb') as pickle_file:
+        #         bigram_mod = pickle.load(pickle_file)
+                
+        #     with open(trigram_mod_fname, 'rb') as pickle_file:
+        #         trigram_mod = pickle.load(pickle_file)
+                
+        #     with open(quadgram_mod_fname, 'rb') as pickle_file:
+        #         quadgram_mod = pickle.load(pickle_file)
+            
+        #     # make up to quad grams
+        #     combined_article = make_quadgrams(combined_article,bigram_mod,trigram_mod,quadgram_mod)
         
         # remove to free memory
-        os.remove(bigram_mod_fname)
-        os.remove(trigram_mod_fname)
-        os.remove(quadgram_mod_fname)
+        # os.remove(bigram_mod_fname)
+        # os.remove(trigram_mod_fname)
+        # os.remove(quadgram_mod_fname)
             
         # download dictionary
         id2word_fname = '/tmp/id2word.pkl'
