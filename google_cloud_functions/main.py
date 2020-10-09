@@ -76,9 +76,8 @@ def return_suggested_articles(request):
     # make into one text file
     combined_article = headline+'. '+article
     
-    
     # set to 1 for single doc lda, 0 for tfidf
-    do_single_document_LDA = 0
+    do_single_document_LDA = 1
     
     # number of query words to return
     n_search_words = 5
@@ -95,8 +94,6 @@ def return_suggested_articles(request):
     
     # if avoiding repeated words (only relevant if num_lda_topics > 1)
     do_unique_search_words = 0
-    
-    
     
     print('Downloading stop words')
     # download stopwords list
