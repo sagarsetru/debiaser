@@ -208,8 +208,9 @@ def return_suggested_articles2(url,do_unique_search_words=1,use_pre_trained_mode
     
     # remove stopwords
     article_processed = remove_stopwords(article_processed,stop_words)
-    print('AFTER STOPWORDS')
-    print(article_processed)
+    if print_article:
+        print('AFTER STOPWORDS')
+        print(article_processed)
     
     
     if do_ngrams:
@@ -281,12 +282,14 @@ def return_suggested_articles2(url,do_unique_search_words=1,use_pre_trained_mode
         lda_topics = lda.show_topics(formatted = False)
     
     
+    if use_pre_trained_model:
+        return lda_topics, processed_dictionary
     # ALL INTERESTING BUT DEPRECATED FOR NOW
     # WILL FOLLOW SIMPLER APPROACH:
         # Just take top word in each generated topic
         
     # get top words per topic
-    # lda_top_topic_words_string, lda_top_topic_words_list = get_lda_top_topic_words(lda_topics,num_lda_topics,do_unique_search_words,n_search_words)
+    lda_top_topic_words_string, lda_top_topic_words_list = get_lda_top_topic_words(lda_topics,num_lda_topics,do_unique_search_words,n_search_words)
 
     '''
     #  # string is for final search string
@@ -415,8 +418,8 @@ def return_suggested_articles2(url,do_unique_search_words=1,use_pre_trained_mode
         
     # print(len(queries))
     # return json.dumps(queries_dict)
-    return lda_topics, processed_dictionary, lda, bow_corpus
-
+    # return lda_topics, processed_dictionary, lda, bow_corpus
+    return lda_top_topic_words_list, lda_top_topic_words_string, lda_topics
 
 def download_from_bucket(bucket_name,source_data_name,destination_file_name):
     """
@@ -847,23 +850,45 @@ def get_lda_top_topic_words(lda_topics,num_topics,do_unique_search_words,n_searc
 
 
 # url = 'https://www.theguardian.com/sport/2020/sep/25/la-lakers-denver-nuggets-game-4-recap'
-# # url = 'https://www.nytimes.com/2020/09/25/us/politics/rbg-retirement-obama.html'
+url = 'https://www.nytimes.com/2020/09/25/us/politics/rbg-retirement-obama.html'
 # # url = 'https://www.nytimes.com/2020/09/27/us/politics/trump-biden-debate-expectations.html?action=click&module=Top%20Stories&pgtype=Homepage'
+
+# n_topics_test = [1,2,3,4,5]
+n_topics_test = [5]
+
+n_topics_top_words = {}
+n_topics_lda_topics = {}
+
+for n_topics in n_topics_test:
+    
+    lda_top_topic_words_list, lda_top_topic_words_string, lda_topics = return_suggested_articles2(url,num_lda_topics=n_topics,use_pre_trained_model=0,n_passes=20)
+    
+    n_topics_top_words[n_topics] = lda_top_topic_words_list
+    n_topics_lda_topics[n_topics] = lda_topics
+
+
+
 
 # # lda_topics, queries = return_suggested_articles2(url)
 # lda_topics,processed_dictionary,lda,bow_corpus = return_suggested_articles2(url)
 
+
+
+
+
 # # print(queries)
 # print(lda_topics)
-# #%%
-# # lda_topics_with_words = []
-# # for topic in lda_topics:
-# #     print(topic)
+#%%
+lda_topics, processed_dictionary = return_suggested_articles2(url,num_lda_topics=n_topics,use_pre_trained_model=1,do_sentences=0)
+
+lda_topics_with_words = []
+for topic in lda_topics:
+    print(topic)
     
-# #     for word in topic:
-# #         print(word[0])
-# #         print(processed_dictionary[word[0]])
-# #         lda_topics_with_words.append((processed_dictionary[word[0]],word[1]))
+    for word in topic:
+        print(word[0])
+        print(processed_dictionary[word[0]])
+        lda_topics_with_words.append((processed_dictionary[word[0]],word[1]))
 
 # lda_topics_with_words2 = []
 
