@@ -765,9 +765,11 @@ def get_lda_top_topic_words(lda_topics,num_topics,do_unique_search_words,n_searc
                 counter += 1
 
                 if counter < n_search_words:
-
-                    lda_top_topic_words_string += ' '+topic_word[0]
-                    lda_top_topic_words_list.append(topic_word[0])
+                    
+                    word = topic_word[0]
+                    
+                    # handle cases where already added bigram is in unigram and then update list and string
+                    lda_top_topic_words_string, lda_top_topic_words_list, counter = remove_unigram_if_in_ngram(word, lda_top_topic_words_list, lda_top_topic_words_string,do_unique_search_words,counter)
 
     # if lda model has more than one topic
     elif num_topics > 1:
@@ -805,10 +807,9 @@ def get_lda_top_topic_words(lda_topics,num_topics,do_unique_search_words,n_searc
                 # access the appropriate topic word
                 word = lda_topics[topic_use][fixed_ind1][ind_use][fixed_ind2]
 
-                lda_top_topic_words_string += ' '+word
-
-                lda_top_topic_words_list.append(word)
-
+                # handle cases where already added bigram is in unigram and then update list and string
+                lda_top_topic_words_string, lda_top_topic_words_list, counter = remove_unigram_if_in_ngram(word, lda_top_topic_words_list, lda_top_topic_words_string,do_unique_search_words,counter)
+                    
         # don't reuse a word if it has already been used
         else:
 
@@ -833,12 +834,8 @@ def get_lda_top_topic_words(lda_topics,num_topics,do_unique_search_words,n_searc
                 # access the appropriate topic word
                 word = lda_topics[topic_use][fixed_ind1][ind_use][fixed_ind2]
 
-                # only add if it is not currently in the top topic words
-                if word not in lda_top_topic_words_list:
-
-                    lda_top_topic_words_string += ' '+word
-
-                    lda_top_topic_words_list.append(word)
+                # handle cases where already added bigram is in unigram and then update list and string
+                lda_top_topic_words_string, lda_top_topic_words_list, counter = remove_unigram_if_in_ngram(word, lda_top_topic_words_list, lda_top_topic_words_string,do_unique_search_words,counter)
                 
                 # if the length of the topic words list is at the number of descired topics
                 if len(lda_top_topic_words_list) == n_search_words:
@@ -847,26 +844,84 @@ def get_lda_top_topic_words(lda_topics,num_topics,do_unique_search_words,n_searc
     return lda_top_topic_words_string, lda_top_topic_words_list
 
 
+def remove_unigram_if_in_ngram(word, lda_top_topic_words_list, lda_top_topic_words_string,do_unique_search_words,counter):
+    """
+    fxn handles cases when an already added unigram search term is in a bigram
 
+    Parameters
+    ----------
+    word : string
+        input word from topic.
+    lda_top_topic_words_list : list
+        list of topic words.
+    lda_top_topic_words_string : string
+        string of topic words.
+    do_unique_search_words : 0 or 1
+        whether to have unique search words.
+    counter : int
+        the number of words added
+
+    Returns
+    -------
+    lda_top_topic_words_string : string
+        edited search words string.
+    lda_top_topic_words_list : list
+        edited search words list.
+
+    """
+    
+    # remove duplicate unigrams that are in an ngram
+    if "_" in word:
+        
+        # check to make sure this isn't a duplicate bigram
+        if word.replace("_"," ") not in lda_top_topic_words_string:
+            
+            for already_word in lda_top_topic_words_list:
+                
+                if already_word in word:
+    
+                    lda_top_topic_words_list.remove(already_word)
+                    
+                    counter -= 1
+        
+        lda_top_topic_words_string = ''
+        
+        # remake the string now that word has been removed
+        for already_word in lda_top_topic_words_list:
+            lda_top_topic_words_string += ' '+already_word
+
+    
+    if do_unique_search_words:
+        # check to confirm this new word isn't a unigram in an ngram
+        if word not in lda_top_topic_words_string:
+            
+            lda_top_topic_words_string += ' '+word.replace("_"," ")
+            lda_top_topic_words_list.append(word.replace("_"," "))
+    else:
+        
+        lda_top_topic_words_string += ' '+word.replace("_"," ")
+        lda_top_topic_words_list.append(word.replace("_"," "))
+        
+    return lda_top_topic_words_string, lda_top_topic_words_list, counter
 
 # url = 'https://www.theguardian.com/sport/2020/sep/25/la-lakers-denver-nuggets-game-4-recap'
-url = 'https://www.nytimes.com/2020/09/25/us/politics/rbg-retirement-obama.html'
-# # url = 'https://www.nytimes.com/2020/09/27/us/politics/trump-biden-debate-expectations.html?action=click&module=Top%20Stories&pgtype=Homepage'
+# url = 'https://www.nytimes.com/2020/09/25/us/politics/rbg-retirement-obama.html'
+url = 'https://www.nytimes.com/2020/09/27/us/politics/trump-biden-debate-expectations.html?action=click&module=Top%20Stories&pgtype=Homepage'
 
 # n_topics_test = [1,2,3,4,5]
-n_topics_test = [5]
+n_topics_test = [1]
 
 n_topics_top_words = {}
 n_topics_lda_topics = {}
 
 for n_topics in n_topics_test:
     
-    lda_top_topic_words_list, lda_top_topic_words_string, lda_topics = return_suggested_articles2(url,num_lda_topics=n_topics,use_pre_trained_model=0,n_passes=20)
+    lda_top_topic_words_list, lda_top_topic_words_string, lda_topics = return_suggested_articles2(url,num_lda_topics=n_topics,use_pre_trained_model=0,n_passes=10,do_ngrams=1)
     
     n_topics_top_words[n_topics] = lda_top_topic_words_list
     n_topics_lda_topics[n_topics] = lda_topics
 
-
+print(lda_top_topic_words_string)
 
 
 # # lda_topics, queries = return_suggested_articles2(url)
@@ -881,14 +936,14 @@ for n_topics in n_topics_test:
 #%%
 lda_topics, processed_dictionary = return_suggested_articles2(url,num_lda_topics=n_topics,use_pre_trained_model=1,do_sentences=0)
 
-lda_topics_with_words = []
-for topic in lda_topics:
-    print(topic)
+# lda_topics_with_words = []
+# for topic in lda_topics:
+#     print(topic)
     
-    for word in topic:
-        print(word[0])
-        print(processed_dictionary[word[0]])
-        lda_topics_with_words.append((processed_dictionary[word[0]],word[1]))
+#     for word in topic:
+#         print(word[0])
+#         print(processed_dictionary[word[0]])
+#         lda_topics_with_words.append((processed_dictionary[word[0]],word[1]))
 
 # lda_topics_with_words2 = []
 
