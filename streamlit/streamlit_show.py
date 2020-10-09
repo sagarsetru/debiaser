@@ -159,6 +159,19 @@ def return_suggested_articles2(url,do_unique_search_words=1,use_pre_trained_mode
     stop_words = stop_words['term']
     stop_words = [word for word in stop_words]
     
+    # add custom stop words
+    stop_words.append('said')
+    stop_words.append('youre')
+    stop_words.append('mph')
+    stop_words.append('inc')
+    stop_words.append('cov')
+    stop_words.append('jr')
+    stop_words.append('dr')
+    stop_words.append('ads')
+    stop_words.append('cookies')
+    stop_words.append('factset')
+    
+    
     # # adding some custom words
     # stop_words.append('said')
     # stop_words.append('youre')
@@ -893,6 +906,8 @@ def remove_unigram_if_in_ngram(word, lda_top_topic_words_list, lda_top_topic_wor
     
     if do_unique_search_words:
         # check to confirm this new word isn't a unigram in an ngram
+        
+        print(word)
         if word not in lda_top_topic_words_string:
             
             lda_top_topic_words_string += ' '+word.replace("_"," ")
@@ -907,6 +922,7 @@ def remove_unigram_if_in_ngram(word, lda_top_topic_words_list, lda_top_topic_wor
 # url = 'https://www.theguardian.com/sport/2020/sep/25/la-lakers-denver-nuggets-game-4-recap'
 # url = 'https://www.nytimes.com/2020/09/25/us/politics/rbg-retirement-obama.html'
 url = 'https://www.nytimes.com/2020/09/27/us/politics/trump-biden-debate-expectations.html?action=click&module=Top%20Stories&pgtype=Homepage'
+url = 'https://www.nytimes.com/2020/09/30/health/covid-cruise-ships.html'
 
 # n_topics_test = [1,2,3,4,5]
 n_topics_test = [1]

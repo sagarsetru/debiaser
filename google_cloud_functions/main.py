@@ -793,15 +793,31 @@ def remove_unigram_if_in_ngram(word, lda_top_topic_words_list, lda_top_topic_wor
                     lda_top_topic_words_list.remove(already_word)
                     
                     counter -= 1
+                    
+        # remake the string now that word has been removed
+        lda_top_topic_words_string = ''
+        
+        for already_word in lda_top_topic_words_list:
+            lda_top_topic_words_string += ' '+already_word
+
+    
+    if do_unique_search_words:
+        
+        for already_word in lda_top_topic_words_list:
+                
+                if already_word in word:
+    
+                    lda_top_topic_words_list.remove(already_word)
+                    
+                    counter -= 1
         
         lda_top_topic_words_string = ''
         
         # remake the string now that word has been removed
         for already_word in lda_top_topic_words_list:
             lda_top_topic_words_string += ' '+already_word
-
-    
-    if do_unique_search_words:
+            
+        
         # check to confirm this new word isn't a unigram in an ngram
         if word not in lda_top_topic_words_string:
             
