@@ -82,7 +82,8 @@ def return_suggested_articles(request):
     # number of query words to return
     n_search_words = 5
     
-    do_ngrams = 1
+    # can identify ngrams, but slows down performance
+    do_ngrams = 0
     
     ### SINGLE DOC LDA PARAMS
     
@@ -829,5 +830,6 @@ def remove_unigram_if_in_ngram(word, lda_top_topic_words_list, lda_top_topic_wor
         lda_top_topic_words_list.append(word.replace("_"," "))
         
     return lda_top_topic_words_string, lda_top_topic_words_list, counter
+
 def getKey(item):
     return item[1]
