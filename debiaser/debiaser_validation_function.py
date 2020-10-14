@@ -726,8 +726,10 @@ def get_jaccard_sim(list1, list2):
     b = set(list2)
     
     c = a.intersection(b)
+    d = a.union(b)
     
-    return float(len(c)) / (len(a) + len(b) - len(c))
+    
+    return float( len(c) / len(d) )
 
 def get_single_topic_word_probs(lda_topics,n_search_words_single_topic_analysis):
     """
