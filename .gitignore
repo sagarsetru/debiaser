@@ -144,10 +144,6 @@ all_the_news/
 
 all_sides_media_data/
 
-media_papers/
-
-ml_papers/
-
 eda_figs/
 
 google_cloud_functions/nltk_data
