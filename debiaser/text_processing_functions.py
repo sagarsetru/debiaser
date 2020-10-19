@@ -59,7 +59,7 @@ def process_text(article_text,nlp):
 
     """
     
-    # lemmatize NOTE: NOT IMPLEMENTED YET...
+    # lemmatize NOTE: FORGOING IMPLEMENTATION FOR NOW
     # article_text = lemmatize(article_text,nlp)
     
     # run gensim preprocess
