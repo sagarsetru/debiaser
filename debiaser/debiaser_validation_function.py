@@ -32,8 +32,6 @@ from nltk.corpus import stopwords
 # for counting frequency of words
 from collections import defaultdict
 
-# for bi tri quad grams via word 2 vec
-import gensim.models.keyedvectors as word2vec
 
 # import spacy
 # nlp  = spacy.load('en_core_web_sm')
