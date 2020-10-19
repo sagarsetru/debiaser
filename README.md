@@ -1,6 +1,6 @@
 # Debiaser
 
-To download the chrome extension, follow the instructions here: git.io/JUbNQ
+To download the chrome extension, follow the instructions here: https://github.com/sagarsetru/debiaser_chrome_extension
 
 ### Context
 
