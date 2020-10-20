@@ -63,7 +63,6 @@ def return_suggested_articles(request):
     """    
     
     
-    
     # get the requested json for the webpage
     request_json = request.get_json(silent=True)
     
@@ -83,12 +82,12 @@ def return_suggested_articles(request):
     n_search_words = 5
     
     # can identify ngrams, but slows down performance
-    do_ngrams = 0
+    do_ngrams = 1
     
     ### SINGLE DOC LDA PARAMS
     
     # set the number of topics to generate (5 seems to work pretty well)
-    num_lda_topics = 1
+    num_lda_topics = 5
     
     # set the number of passes
     n_passes = 10
@@ -169,20 +168,6 @@ def return_suggested_articles(request):
     #                                                                                       word_frequency_threshold)
     
     if do_single_document_LDA:
-        
-        # if do_ngrams:
-        #     # load bigram trigram quadgram models
-        #     bigram_mod_fname = '/tmp/bigram_mod.pkl'
-            
-        #     download_blob('debiaser_data','bigram_mod.pkl',bigram_mod_fname)
-            
-        #     with open(bigram_mod_fname, 'rb') as pickle_file:
-        #         bigram_mod = pickle.load(pickle_file)
-            
-        #     print('generating bigrams')
-        #     article_processed = make_bigrams(article_processed,bigram_mod)
-            
-        #     os.remove(bigram_mod_fname)
             
         if do_ngrams:
             # load bigram trigram quadgram models
@@ -207,6 +192,11 @@ def return_suggested_articles(request):
             
             # make up to quad grams
             article_processed = make_quadgrams(article_processed,bigram_mod,trigram_mod,quadgram_mod)
+            
+            # remove to free memory
+            os.remove(bigram_mod_fname)
+            os.remove(trigram_mod_fname)
+            os.remove(quadgram_mod_fname)
         
         print('generating dictionary and bag of words vector...')
         start = time.process_time()
@@ -252,32 +242,32 @@ def return_suggested_articles(request):
         # remove from memory
         os.remove(tfidf_matrix_filename)
         
-        # if do_ngrams:
-        #     # load bigram trigram quadgram models
-        #     bigram_mod_fname = '/tmp/bigram_mod.pkl'
-        #     trigram_mod_fname = '/tmp/trigram_mod.pkl'
-        #     quadgram_mod_fname = '/tmp/quadgram_mod.pkl'
+        if do_ngrams:
+            # load bigram trigram quadgram models
+            bigram_mod_fname = '/tmp/bigram_mod.pkl'
+            trigram_mod_fname = '/tmp/trigram_mod.pkl'
+            quadgram_mod_fname = '/tmp/quadgram_mod.pkl'
             
-        #     download_blob('debiaser_data','bigram_mod.pkl',bigram_mod_fname)
-        #     download_blob('debiaser_data','trigram_mod.pkl',trigram_mod_fname)
-        #     download_blob('debiaser_data','quadgram_mod.pkl',quadgram_mod_fname)
+            download_blob('debiaser_data','bigram_mod.pkl',bigram_mod_fname)
+            download_blob('debiaser_data','trigram_mod.pkl',trigram_mod_fname)
+            download_blob('debiaser_data','quadgram_mod.pkl',quadgram_mod_fname)
             
-        #     with open(bigram_mod_fname, 'rb') as pickle_file:
-        #         bigram_mod = pickle.load(pickle_file)
+            with open(bigram_mod_fname, 'rb') as pickle_file:
+                bigram_mod = pickle.load(pickle_file)
                 
-        #     with open(trigram_mod_fname, 'rb') as pickle_file:
-        #         trigram_mod = pickle.load(pickle_file)
+            with open(trigram_mod_fname, 'rb') as pickle_file:
+                trigram_mod = pickle.load(pickle_file)
                 
-        #     with open(quadgram_mod_fname, 'rb') as pickle_file:
-        #         quadgram_mod = pickle.load(pickle_file)
+            with open(quadgram_mod_fname, 'rb') as pickle_file:
+                quadgram_mod = pickle.load(pickle_file)
             
-        #     # make up to quad grams
-        #     combined_article = make_quadgrams(combined_article,bigram_mod,trigram_mod,quadgram_mod)
+            # make up to quad grams
+            combined_article = make_quadgrams(combined_article,bigram_mod,trigram_mod,quadgram_mod)
         
-        # remove to free memory
-        # os.remove(bigram_mod_fname)
-        # os.remove(trigram_mod_fname)
-        # os.remove(quadgram_mod_fname)
+            # remove to free memory
+            os.remove(bigram_mod_fname)
+            os.remove(trigram_mod_fname)
+            os.remove(quadgram_mod_fname)
             
         # download dictionary
         id2word_fname = '/tmp/id2word.pkl'
