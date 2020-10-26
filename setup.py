@@ -1,3 +1,3 @@
 from setuptools import setup, find_packages
 
-setup(name="projectname", version="0.0.1")
+setup(name="debiaser", version="0.0.1")
