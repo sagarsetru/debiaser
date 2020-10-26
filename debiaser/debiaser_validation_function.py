@@ -163,9 +163,16 @@ def return_suggested_articles2(url,do_unique_search_words=1,use_pre_trained_mode
     stop_words = [word for word in stop_words]
     
     # # adding some custom words
-    # stop_words.append('said')
-    # stop_words.append('youre')
-    # stop_words.append('mph')
+    stop_words.append('said')
+    stop_words.append('youre')
+    stop_words.append('mph')
+    stop_words.append('inc')
+    stop_words.append('cov')
+    stop_words.append('jr')
+    stop_words.append('dr')
+    stop_words.append('ads')
+    stop_words.append('cookies')
+    stop_words.append('factset')
     
     
     # download all_sides_media list
